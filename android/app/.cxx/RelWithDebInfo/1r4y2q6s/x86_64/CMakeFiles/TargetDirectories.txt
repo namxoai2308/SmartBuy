@@ -1,0 +1,2 @@
+C:/Users/khong/Documents/smartbuy/android/app/.cxx/RelWithDebInfo/1r4y2q6s/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/khong/Documents/smartbuy/android/app/.cxx/RelWithDebInfo/1r4y2q6s/x86_64/CMakeFiles/rebuild_cache.dir

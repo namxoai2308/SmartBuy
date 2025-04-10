@@ -1,0 +1,2 @@
+C:/Users/khong/Documents/flutter-ecommerce/flutter-ecommerce-live-coding-master/android/app/.cxx/Debug/6c495a1b/x86/CMakeFiles/edit_cache.dir
+C:/Users/khong/Documents/flutter-ecommerce/flutter-ecommerce-live-coding-master/android/app/.cxx/Debug/6c495a1b/x86/CMakeFiles/rebuild_cache.dir
