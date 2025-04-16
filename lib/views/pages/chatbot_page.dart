@@ -12,9 +12,9 @@ class ChatbotPage extends StatelessWidget {
 
     return BlocProvider(
       create: (_) => ChatbotCubit(),
-      child: SafeArea( // ✅ Tránh bị đè bởi system UI
+      child: SafeArea(
         child: Scaffold(
-          resizeToAvoidBottomInset: true, // ✅ Đẩy lên khi mở bàn phím
+          resizeToAvoidBottomInset: true,
           appBar: AppBar(
             title: const Text("Chatbot Gemini"),
             centerTitle: true,
@@ -49,8 +49,8 @@ class ChatbotPage extends StatelessWidget {
                 ),
               ),
               Container(
-                color: Colors.white, // ✅ Tách rõ với phần hiển thị tin nhắn
-                padding: const EdgeInsets.fromLTRB(8, 8, 8, 16), // ✅ Cách bottom nav
+                color: Colors.white,
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
                 child: Row(
                   children: [
                     Expanded(
@@ -101,7 +101,7 @@ class ChatbotPage extends StatelessWidget {
     if (messageText.isNotEmpty) {
       context.read<ChatbotCubit>().sendMessage(messageText);
       controller.clear();
-      FocusScope.of(context).unfocus(); // ✅ Ẩn bàn phím
+      FocusScope.of(context).unfocus();
     }
   }
 
