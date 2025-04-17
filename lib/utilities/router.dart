@@ -12,6 +12,7 @@ import 'package:flutter_ecommerce/views/pages/checkout/payment_methods_page.dart
 import 'package:flutter_ecommerce/views/pages/checkout/shipping_addresses_page.dart';
 import 'package:flutter_ecommerce/views/pages/auth_page.dart';
 import 'package:flutter_ecommerce/views/pages/product_details.dart';
+import 'package:flutter_ecommerce/views/pages/checkout/order_success_page.dart';
 
 Route<dynamic> onGenerate(RouteSettings settings) {
   switch (settings.name) {
@@ -73,6 +74,13 @@ Route<dynamic> onGenerate(RouteSettings settings) {
         ),
         settings: settings,
       );
+
+    case AppRoutes.orderSuccessRoute:
+          return CupertinoPageRoute(
+            builder: (_) => const OrderSuccessPage(), // Tạo instance của trang thành công
+            settings: settings,
+          );
+
     case AppRoutes.addShippingAddressRoute:
       final args = settings.arguments as AddShippingAddressArgs;
       final checkoutCubit = args.checkoutCubit;

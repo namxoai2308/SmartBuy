@@ -2,7 +2,7 @@ class AddToCartModel {
   final String id;
   final String productId;
   final String title;
-  final int price;
+  final double price;
   final int quantity;
   final String imgUrl;
   final int discountValue;
@@ -20,6 +20,30 @@ class AddToCartModel {
     this.color = 'Black',
     required this.size,
   });
+
+  AddToCartModel copyWith({
+    String? id,
+    String? productId,
+    String? title,
+    double? price,
+    int? quantity,
+    String? imgUrl,
+    int? discountValue,
+    String? color,
+    String? size,
+  }) {
+    return AddToCartModel(
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      title: title ?? this.title,
+      price: price ?? this.price,
+      quantity: quantity ?? this.quantity,
+      imgUrl: imgUrl ?? this.imgUrl,
+      discountValue: discountValue ?? this.discountValue,
+      color: color ?? this.color,
+      size: size ?? this.size,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     final result = <String, dynamic>{};
@@ -42,7 +66,7 @@ class AddToCartModel {
       id: documentId,
       title: map['title'] ?? '',
       productId: map['productId'] ?? '',
-      price: map['price']?.toInt() ?? 0,
+      price: map['price']?.toDouble() ?? 0.0,
       quantity: map['quantity']?.toInt() ?? 0,
       imgUrl: map['imgUrl'] ?? '',
       discountValue: map['discountValue']?.toInt() ?? 0,

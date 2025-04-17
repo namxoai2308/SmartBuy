@@ -5,6 +5,8 @@ import 'package:flutter_ecommerce/utilities/api_path.dart';
 abstract class CartServices {
   Future<void> addProductToCart(String userId, AddToCartModel cartProduct);
   Future<List<AddToCartModel>> getCartProducts(String userId);
+  Future<void> removeFromCart(String userId, String productId);
+  Future<void> updateCartItem(String userId, AddToCartModel updatedItem);
 }
 
 class CartServicesImpl implements CartServices {
@@ -24,4 +26,18 @@ class CartServicesImpl implements CartServices {
         path: ApiPath.myProductsCart(userId),
         builder: (data, documentId) => AddToCartModel.fromMap(data, documentId),
       );
+
+  @override
+  Future<void> removeFromCart(String userId, String productId) async =>
+      await firestoreServices.deleteData(
+        path: ApiPath.addToCart(userId, productId),
+      );
+
+  @override
+    Future<void> updateCartItem(String userId, AddToCartModel updatedItem) async =>
+        await firestoreServices.setData(
+          path: ApiPath.addToCart(userId, updatedItem.id),
+          data: updatedItem.toMap(),
+        );
+
 }

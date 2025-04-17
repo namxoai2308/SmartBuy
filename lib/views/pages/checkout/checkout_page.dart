@@ -159,9 +159,7 @@ class CheckoutPage extends StatelessWidget {
                             ),
                           );
                         } else if (state is PaymentMade) {
-                          Navigator.of(context).popUntil(
-                            (route) => route.isFirst,
-                          );
+                          Navigator.of(context).pushReplacementNamed(AppRoutes.orderSuccessRoute);
                         }
                       },
                       buildWhen: (previous, current) =>

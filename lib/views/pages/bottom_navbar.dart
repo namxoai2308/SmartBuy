@@ -8,6 +8,8 @@ import 'package:flutter_ecommerce/views/pages/home_page.dart';
 import 'package:flutter_ecommerce/views/pages/profle_page.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 import 'chatbot_page.dart';
+import 'chatbot_wrapper.dart';
+
 
 class BottomNavbar extends StatefulWidget {
   const BottomNavbar({super.key});
@@ -38,7 +40,7 @@ class _BottomNavbarState extends State<BottomNavbar> {
         },
         child: const CartPage(),
       ),
-      const ChatbotPage(),
+      ChatbotWrapper(uid: 'your-uid'),
       const ProfilePage()
     ];
   }

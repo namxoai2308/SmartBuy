@@ -72,7 +72,10 @@ class CartPage extends StatelessWidget {
                         itemBuilder: (BuildContext context, int i) {
                           final cartItem = cartProducts[i];
                           return CartListItem(
-                            cartItem: cartItem,
+                          cartItem: cartItem,
+                            onRemove: () {
+                                    cartCubit.removeFromCart(cartItem); // gọi Cubit để xoá
+                                  },
                           );
                         },
                       ),

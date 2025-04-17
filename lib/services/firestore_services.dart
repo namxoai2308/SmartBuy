@@ -1,11 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_ecommerce/models/product.dart'; // Thêm dòng này
 
 class FirestoreServices {
   FirestoreServices._();
-
   static final instance = FirestoreServices._();
-
   final _fireStore = FirebaseFirestore.instance;
 
   Future<void> setData({
@@ -45,12 +44,8 @@ class FirestoreServices {
     final snapshots = query.snapshots();
     return snapshots.map((snapshot) {
       final result = snapshot.docs
-          .map(
-            (snapshot) => builder(
-              snapshot.data() as Map<String, dynamic>,
-              snapshot.id,
-            ),
-          )
+          .map((snapshot) =>
+              builder(snapshot.data() as Map<String, dynamic>, snapshot.id))
           .where((value) => value != null)
           .toList();
       if (sort != null) {
@@ -81,7 +76,8 @@ class FirestoreServices {
     }
     final snapshots = await query.get();
     final result = snapshots.docs
-        .map((snapshot) => builder(snapshot.data() as Map<String, dynamic>, snapshot.id))
+        .map((snapshot) =>
+            builder(snapshot.data() as Map<String, dynamic>, snapshot.id))
         .where((value) => value != null)
         .toList();
     if (sort != null) {
@@ -90,3 +86,14 @@ class FirestoreServices {
     return result;
   }
 }
+
+extension ChatbotProductStream on FirestoreServices {
+  Stream<List<Product>> newProductsStream(String uid) {
+    return this.collectionsStream<Product>(
+      path: 'products',
+      builder: (data, docId) => Product.fromMap(data!, docId),
+      queryBuilder: (query) => query.where('userId', isEqualTo: uid),
+    );
+  }
+}
+
