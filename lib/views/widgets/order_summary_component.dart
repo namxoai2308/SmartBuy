@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class OrderSummaryComponent extends StatelessWidget {
   final String title;
   final String value;
+
   const OrderSummaryComponent({
     Key? key,
     required this.title,
@@ -16,13 +17,17 @@ class OrderSummaryComponent extends StatelessWidget {
       children: [
         Text(
           '$title:',
-          style: Theme.of(context).textTheme.labelMedium!.copyWith(
+          style: Theme.of(context).textTheme.labelSmall!.copyWith(
                 color: Colors.grey,
+                fontSize: 14,
               ),
         ),
         Text(
           value,
-          style: Theme.of(context).textTheme.titleLarge,
+          style: Theme.of(context).textTheme.titleSmall!.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
         ),
       ],
     );

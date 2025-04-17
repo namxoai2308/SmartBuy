@@ -10,6 +10,7 @@ import 'package:flutter_ecommerce/views/widgets/checkout/delivery_method_item.da
 import 'package:flutter_ecommerce/views/widgets/checkout/payment_component.dart';
 import 'package:flutter_ecommerce/views/widgets/checkout/shipping_address_component.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
+import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -18,6 +19,7 @@ class CheckoutPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final checkoutCubit = BlocProvider.of<CheckoutCubit>(context);
+    final cartCubit = BlocProvider.of<CartCubit>(context);
 
     Widget shippingAddressComponent(ShippingAddress? shippingAddress) {
       if (shippingAddress == null) {
@@ -175,8 +177,13 @@ class CheckoutPage extends StatelessWidget {
                         }
                         return MainButton(
                           text: 'Submit Order',
-                          onTap: () async =>
-                              await checkoutCubit.makePayment(300),
+                          onTap: () async {
+                            final cartState = cartCubit.state;
+                            if (cartState is CartLoaded) {
+                              final totalAmount = cartState.totalAmount;
+                              await checkoutCubit.makePayment(totalAmount*1.05);
+                            }
+                          },
                           hasCircularBorder: true,
                         );
                       },
@@ -193,3 +200,4 @@ class CheckoutPage extends StatelessWidget {
     );
   }
 }
+

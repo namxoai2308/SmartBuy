@@ -65,4 +65,30 @@ class CartCubit extends Cubit<CartState> {
       emit(CartError('Failed to remove item: $e'));
     }
   }
+
+  Future<void> increaseQuantity(AddToCartModel cartItem) async {
+    try {
+      final currentUser = authServices.currentUser;
+      final updatedItem = cartItem.copyWith(quantity: cartItem.quantity + 1);
+      await cartServices.updateCartItem(currentUser!.uid, updatedItem);
+      await getCartItems();
+    } catch (e) {
+      emit(CartError('Failed to increase quantity: $e'));
+    }
+  }
+
+  Future<void> decreaseQuantity(AddToCartModel cartItem) async {
+    try {
+      final currentUser = authServices.currentUser;
+      if (cartItem.quantity > 1) {
+        final updatedItem = cartItem.copyWith(quantity: cartItem.quantity - 1);
+        await cartServices.updateCartItem(currentUser!.uid, updatedItem);
+      } else {
+        await cartServices.removeFromCart(currentUser!.uid, cartItem.id);
+      }
+      await getCartItems();
+    } catch (e) {
+      emit(CartError('Failed to decrease quantity: $e'));
+    }
+  }
 }

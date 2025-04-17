@@ -4,92 +4,93 @@ import 'package:flutter_ecommerce/models/add_to_cart_model.dart';
 class CartListItem extends StatelessWidget {
   final AddToCartModel cartItem;
   final VoidCallback onRemove;
+  final VoidCallback onIncrease;
+  final VoidCallback onDecrease;
 
   const CartListItem({
     Key? key,
     required this.cartItem,
     required this.onRemove,
+    required this.onIncrease,
+    required this.onDecrease,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(12.0),
-              bottomLeft: Radius.circular(12.0),
-            ),
-            child: Image.network(
-              cartItem.imgUrl,
-              height: 100,
-              width: 100,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: SizedBox(
+          height: 100,
+          child: Stack(
+            children: [
+              Row(
                 children: [
-                  Text(
-                    cartItem.title,
-                    style: const TextStyle(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.bold,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      cartItem.imgUrl,
+                      width: 70,
+                      height: 70,
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Color: ${cartItem.color}    Size: ${cartItem.size}',
-                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          cartItem.title,
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Color: ${cartItem.color}    Size: ${cartItem.size}',
+                          style:
+                              const TextStyle(color: Colors.grey, fontSize: 13),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            _buildQuantityButton(
+                              icon: Icons.remove,
+                              onTap: onDecrease,
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                '${cartItem.quantity}',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                            ),
+                            _buildQuantityButton(
+                              icon: Icons.add,
+                              onTap: onIncrease,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle_outline),
-                        onPressed: () {
-                          // TODO: decrease quantity
-                        },
-                      ),
-                      const Text('1'),
-                      IconButton(
-                        icon: const Icon(Icons.add_circle_outline),
-                        onPressed: () {
-                          // TODO: increase quantity
-                        },
-                      ),
-                    ],
-                  ),
+
+                  const SizedBox(width: 48),
                 ],
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12.0, top: 12.0, bottom: 12.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                PopupMenuButton<String>(
+
+              Positioned(
+                top: 0,
+                right: -10,
+                child: PopupMenuButton<String>(
                   onSelected: (value) {
-                    if (value == 'remove') {
-                      onRemove(); // Gọi callback xóa
-                    }
+                    if (value == 'remove') onRemove();
                   },
                   itemBuilder: (BuildContext context) => [
                     const PopupMenuItem<String>(
@@ -97,19 +98,43 @@ class CartListItem extends StatelessWidget {
                       child: Text('Remove'),
                     ),
                   ],
-                  icon: const Icon(Icons.more_vert),
+                  icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+                  padding: EdgeInsets.zero,
+                  offset: const Offset(0, 30),
                 ),
-                Text(
-                  '${cartItem.price}\$',
+              ),
+
+              Positioned(
+                bottom: 5,
+                right: 0,
+                child: Text(
+                  '${(cartItem.price * cartItem.quantity).toStringAsFixed(0)}\$',
                   style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                      fontWeight: FontWeight.bold, fontSize: 17),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuantityButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Icon(icon, size: 16),
       ),
     );
   }

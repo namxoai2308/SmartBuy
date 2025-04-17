@@ -74,4 +74,18 @@ class AddToCartModel {
       size: map['size'] ?? '',
     );
   }
+    factory AddToCartModel.empty() => AddToCartModel(
+          id: '',
+          productId: '',
+          title: '',
+          price: 0.0,
+          quantity: 0,
+          imgUrl: '',
+          discountValue: 0,
+          color: '',
+          size: '',
+        );
+
+    bool get isEmpty => id.isEmpty;
+
 }

@@ -74,8 +74,15 @@ class CartPage extends StatelessWidget {
                           return CartListItem(
                           cartItem: cartItem,
                             onRemove: () {
-                                    cartCubit.removeFromCart(cartItem); // gọi Cubit để xoá
+                                    cartCubit.removeFromCart(cartItem);
                                   },
+
+                            onIncrease: () {
+                                cartCubit.increaseQuantity(cartItem);
+                              },
+                              onDecrease: () {
+                                cartCubit.decreaseQuantity(cartItem);
+                              },
                           );
                         },
                       ),

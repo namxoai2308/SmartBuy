@@ -13,12 +13,29 @@ class CartServicesImpl implements CartServices {
   final firestoreServices = FirestoreServices.instance;
 
   @override
-  Future<void> addProductToCart(
-          String userId, AddToCartModel cartProduct) async =>
+  Future<void> addProductToCart(String userId, AddToCartModel cartProduct) async {
+    final existingItems = await getCartProducts(userId);
+    final matchedItem = existingItems.firstWhere(
+      (item) =>
+          item.productId == cartProduct.productId &&
+          item.color == cartProduct.color &&
+          item.size == cartProduct.size,
+      orElse: () => AddToCartModel.empty(),
+    );
+
+    if (!matchedItem.isEmpty) {
+      final updatedItem = matchedItem.copyWith(
+        quantity: matchedItem.quantity + cartProduct.quantity,
+      );
+
+      await updateCartItem(userId, updatedItem);
+    } else {
       await firestoreServices.setData(
         path: ApiPath.addToCart(userId, cartProduct.id),
         data: cartProduct.toMap(),
       );
+    }
+  }
 
   @override
   Future<List<AddToCartModel>> getCartProducts(String userId) async =>

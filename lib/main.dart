@@ -9,6 +9,8 @@ import 'package:flutter_ecommerce/utilities/router.dart';
 import 'package:flutter_ecommerce/utilities/routes.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
+
 
 Future<void> main() async {
   await initSetup();
@@ -18,8 +20,6 @@ Future<void> main() async {
 Future<void> initSetup() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-
-  // ✅ Tắt xác minh app khi chạy trên emulator/dev
   await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: true);
 
   Stripe.publishableKey = AppConstants.publishableKey;
@@ -30,17 +30,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) {
-        final cubit = AuthCubit();
-        cubit.authStatus();
-        return cubit;
-      },
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<AuthCubit>(
+          create: (context) {
+            final cubit = AuthCubit();
+            cubit.authStatus();
+            return cubit;
+          },
+        ),
+        BlocProvider<CartCubit>(
+          create: (context) => CartCubit()..getCartItems(),
+        ),
+      ],
       child: Builder(
         builder: (context) {
           return BlocBuilder<AuthCubit, AuthState>(
             bloc: BlocProvider.of<AuthCubit>(context),
-            buildWhen: (previous, current) => current is AuthSuccess || current is AuthInitial,
+            buildWhen: (previous, current) =>
+                current is AuthSuccess || current is AuthInitial,
             builder: (context, state) {
               return MaterialApp(
                 debugShowCheckedModeBanner: false,
@@ -89,3 +97,4 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
