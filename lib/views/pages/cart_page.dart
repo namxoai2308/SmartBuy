@@ -93,7 +93,7 @@ class CartPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 32.0),
                     MainButton(
-                      text: 'Checkout',
+                      text: 'CHECK OUT',
                       onTap: () =>
                           Navigator.of(context, rootNavigator: true).pushNamed(
                         AppRoutes.checkoutPageRoute,

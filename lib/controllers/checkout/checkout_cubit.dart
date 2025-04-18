@@ -91,9 +91,12 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
       emit(CheckoutLoaded(
         deliveryMethods: deliveryMethods,
-        shippingAddress:
-            shippingAddresses.isEmpty ? null : shippingAddresses[0],
+        selectedDeliveryMethod: state is CheckoutLoaded
+            ? (state as CheckoutLoaded).selectedDeliveryMethod
+            : null,
+        shippingAddress: shippingAddresses.isEmpty ? null : shippingAddresses[0],
       ));
+
     } catch (e) {
       emit(CheckoutLoadingFailed(e.toString()));
     }
@@ -122,4 +125,15 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       emit(AddressAddingFailed(e.toString()));
     }
   }
+  void selectDeliveryMethod(DeliveryMethod method) {
+    final currentState = state;
+    if (currentState is CheckoutLoaded) {
+      emit(CheckoutLoaded(
+        deliveryMethods: currentState.deliveryMethods,
+        shippingAddress: currentState.shippingAddress,
+        selectedDeliveryMethod: method,
+      ));
+    }
+  }
+
 }

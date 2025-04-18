@@ -10,12 +10,26 @@ final class CheckoutLoading extends CheckoutState {}
 final class CheckoutLoaded extends CheckoutState {
   final List<DeliveryMethod> deliveryMethods;
   final ShippingAddress? shippingAddress;
+  final DeliveryMethod? selectedDeliveryMethod;
 
-  CheckoutLoaded({
-    required this.deliveryMethods,
-    this.shippingAddress,
-  });
-}
+    CheckoutLoaded({
+      required this.deliveryMethods,
+      required this.selectedDeliveryMethod,
+      this.shippingAddress,
+    });
+
+    CheckoutLoaded copyWith({
+      List<DeliveryMethod>? deliveryMethods,
+      ShippingAddress? shippingAddress,
+      DeliveryMethod? selectedDeliveryMethod,
+    }) {
+      return CheckoutLoaded(
+        deliveryMethods: deliveryMethods ?? this.deliveryMethods,
+        shippingAddress: shippingAddress ?? this.shippingAddress,
+        selectedDeliveryMethod: selectedDeliveryMethod ?? this.selectedDeliveryMethod,
+      );
+    }
+  }
 
 final class CheckoutLoadingFailed extends CheckoutState {
   final String error;
