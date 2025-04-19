@@ -31,7 +31,7 @@ class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
   @override
   Widget build(BuildContext context) {
     final checkoutCubit = BlocProvider.of<CheckoutCubit>(context);
-    
+
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       child: Padding(

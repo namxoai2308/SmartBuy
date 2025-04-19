@@ -25,7 +25,7 @@ class OrderSummaryComponent extends StatelessWidget {
         Text(
           value,
           style: Theme.of(context).textTheme.titleSmall!.copyWith(
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
         ),

@@ -1,8 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
+import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
 import 'package:flutter_ecommerce/models/delivery_method.dart';
+import 'package:flutter_ecommerce/models/order_item_model.dart';
+import 'package:flutter_ecommerce/models/order_model.dart';
 import 'package:flutter_ecommerce/models/shipping_address.dart';
+import 'package:flutter_ecommerce/services/order_services.dart';
 import 'package:flutter_ecommerce/utilities/args_models/add_shipping_address_args.dart';
 import 'package:flutter_ecommerce/utilities/routes.dart';
 import 'package:flutter_ecommerce/views/widgets/checkout/checkout_order_details.dart';
@@ -10,7 +16,7 @@ import 'package:flutter_ecommerce/views/widgets/checkout/delivery_method_item.da
 import 'package:flutter_ecommerce/views/widgets/checkout/payment_component.dart';
 import 'package:flutter_ecommerce/views/widgets/checkout/shipping_address_component.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
-import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
+
 
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
@@ -20,23 +26,13 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  String? selectedDeliveryId;
-  bool _initialized = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_initialized) {
-      BlocProvider.of<CheckoutCubit>(context).getCheckoutData();
-      _initialized = true;
-    }
-  }
+  // Ideally, inject OrderServices instead of creating it here
+  final OrderServices _orderServices = OrderServicesImpl();
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final checkoutCubit = BlocProvider.of<CheckoutCubit>(context);
-    final cartCubit = BlocProvider.of<CartCubit>(context);
 
     Widget shippingAddressComponent(ShippingAddress? shippingAddress) {
       if (shippingAddress == null) {
@@ -48,11 +44,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
               InkWell(
                 onTap: () async {
                   await Navigator.of(context).pushNamed(
-                  AppRoutes.addShippingAddressRoute,
-                  arguments: AddShippingAddressArgs(checkoutCubit: checkoutCubit,shippingAddress: shippingAddress,),
+                    AppRoutes.addShippingAddressRoute,
+                    arguments: AddShippingAddressArgs(
+                      checkoutCubit: checkoutCubit,
+                      shippingAddress: shippingAddress,
+                    ),
                   );
-                  checkoutCubit.getCheckoutData();
-                  },
+                  // Consider if getCheckoutData is still needed or if state updates automatically
+                  // checkoutCubit.getCheckoutData();
+                },
                 child: Text(
                   'Add new one',
                   style: Theme.of(context).textTheme.labelSmall!.copyWith(
@@ -90,11 +90,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
               child: DeliveryMethodItem(
                 deliveryMethod: method,
                 isSelected: checkoutCubit.state is CheckoutLoaded &&
-                    (checkoutCubit.state as CheckoutLoaded).selectedDeliveryMethod?.id == method.id,
+                    (checkoutCubit.state as CheckoutLoaded)
+                            .selectedDeliveryMethod
+                            ?.id ==
+                        method.id,
                 onTap: () {
-                  setState(() {
-                    selectedDeliveryId = method.id;
-                  });
                   checkoutCubit.selectDeliveryMethod(method);
                 },
               ),
@@ -104,132 +104,259 @@ class _CheckoutPageState extends State<CheckoutPage> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Checkout',
-          style: Theme.of(context).textTheme.titleLarge,
+    return BlocListener<CartCubit, CartState>(
+      listener: (context, cartListenState) {
+        if (cartListenState is CartLoaded) {
+          // This might be slightly delayed compared to reading directly
+          // checkoutCubit.updateCartTotalAmount(cartListenState.totalAmount);
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            'Checkout',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: BlocBuilder<CheckoutCubit, CheckoutState>(
-        bloc: checkoutCubit,
-        buildWhen: (previous, current) =>
-            current is CheckoutLoading ||
-            current is CheckoutLoaded ||
-            current is CheckoutLoadingFailed,
-        builder: (context, state) {
-          if (state is CheckoutLoading) {
-            return const Center(child: CircularProgressIndicator.adaptive());
-          } else if (state is CheckoutLoadingFailed) {
-            return Center(child: Text(state.error));
-          } else if (state is CheckoutLoaded) {
-            final shippingAddress = state.shippingAddress;
-            final deliveryMethods = state.deliveryMethods;
+        body: BlocBuilder<CheckoutCubit, CheckoutState>(
+          bloc: checkoutCubit,
+          buildWhen: (previous, current) =>
+              current is CheckoutLoading ||
+              current is CheckoutLoaded ||
+              current is CheckoutLoadingFailed,
+          builder: (context, checkoutState) {
+            if (checkoutState is CheckoutLoading) {
+              return const Center(child: CircularProgressIndicator.adaptive());
+            } else if (checkoutState is CheckoutLoadingFailed) {
+              return Center(child: Text(checkoutState.error));
+            } else if (checkoutState is CheckoutLoaded) {
+              final shippingAddress = checkoutState.shippingAddress;
+              final deliveryMethods = checkoutState.deliveryMethods;
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 32.0),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Shipping address',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8.0),
-                    shippingAddressComponent(shippingAddress),
-                    const SizedBox(height: 24.0),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Payment',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        InkWell(
-                          onTap: () async {
-                            await Navigator.of(context).pushNamed(AppRoutes.paymentMethodsRoute);
-                            checkoutCubit.getCheckoutData();
-                          },
-                          child: Text(
-                            'Change',
-                            style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                                  color: Colors.redAccent,
-                                ),
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 32.0),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Shipping address',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8.0),
+                      shippingAddressComponent(shippingAddress),
+                      const SizedBox(height: 24.0),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Payment',
+                            style: Theme.of(context).textTheme.titleLarge,
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8.0),
-                    const PaymentComponent(),
-                    const SizedBox(height: 24.0),
-                    Text(
-                      'Delivery method',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 8.0),
-                    deliveryMethodsComponent(deliveryMethods),
-                    const SizedBox(height: 32.0),
-                    const CheckoutOrderDetails(),
-                    const SizedBox(height: 64.0),
-                    BlocConsumer<CheckoutCubit, CheckoutState>(
-                      bloc: checkoutCubit,
-                      listenWhen: (previous, current) =>
-                          current is PaymentMakingFailed || current is PaymentMade,
-                      listener: (context, state) {
-                        if (state is PaymentMakingFailed) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(state.error),
-                              backgroundColor: Colors.redAccent,
+                          InkWell(
+                            onTap: () async {
+                              await Navigator.of(context)
+                                  .pushNamed(AppRoutes.paymentMethodsRoute);
+                            },
+                            child: Text(
+                              'Change',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall!
+                                  .copyWith(
+                                    color: Colors.redAccent,
+                                  ),
                             ),
-                          );
-                        } else if (state is PaymentMade) {
-                          Navigator.of(context).pushReplacementNamed(AppRoutes.orderSuccessRoute);
-                        }
-                      },
-                      buildWhen: (previous, current) =>
-                          current is PaymentMade ||
-                          current is PaymentMakingFailed ||
-                          current is MakingPayment,
-                      builder: (context, state) {
-                        if (state is MakingPayment) {
-                          return MainButton(
-                            hasCircularBorder: true,
-                            child: const CircularProgressIndicator.adaptive(),
-                          );
-                        }
-                        return MainButton(
-                          text: 'Submit Order',
-                          onTap: () async {
-                            final cartState = cartCubit.state;
-                            if (cartState is CartLoaded) {
-                              double totalAmount = cartState.totalAmount;
-                              double delivery = 0.0;
-                              if (checkoutCubit.state is CheckoutLoaded) {
-                                final checkoutState = checkoutCubit.state as CheckoutLoaded;
-                                if (checkoutState.selectedDeliveryMethod != null) {
-                                  delivery = checkoutState.selectedDeliveryMethod!.price.toDouble();
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8.0),
+                      const PaymentComponent(),
+                      const SizedBox(height: 24.0),
+                      Text(
+                        'Delivery method',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 8.0),
+                      deliveryMethodsComponent(deliveryMethods),
+                      const SizedBox(height: 32.0),
+                      const CheckoutOrderDetails(), // Uses CartCubit via context.watch internally
+                      const SizedBox(height: 64.0),
+                      BlocConsumer<CheckoutCubit, CheckoutState>(
+                        bloc: checkoutCubit,
+                        listenWhen: (previous, current) =>
+                            current is PaymentMakingFailed ||
+                            current is PaymentMade,
+                        listener: (context, checkoutListenState) {
+                          if (checkoutListenState is PaymentMakingFailed) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(checkoutListenState.error),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          } else if (checkoutListenState is PaymentMade) {
+                            final currentCartState = context.read<CartCubit>().state;
+                            final currentAuth = context.read<AuthCubit>().state;
+
+                            if (currentCartState is CartLoaded &&
+                                checkoutState is CheckoutLoaded &&
+                                currentAuth is AuthSuccess) {
+                              if (currentCartState.cartProducts.isNotEmpty) {
+                                final userId = currentAuth.user.uid;
+                                final shippingInfo = checkoutState.shippingAddress;
+                                final deliveryInfo = checkoutState.selectedDeliveryMethod;
+
+                                if (shippingInfo != null && deliveryInfo != null) {
+                                  final orderItems = currentCartState
+                                      .cartProducts
+                                      .map((cartItem) => OrderItemModel(
+                                            productId: cartItem.productId,
+                                            title: cartItem.title,
+                                            price: cartItem.price,
+                                            quantity: cartItem.quantity,
+                                            imgUrl: cartItem.imgUrl,
+                                            color: cartItem.color,
+                                            size: cartItem.size,
+                                          ))
+                                      .toList();
+
+                                  final finalTotalAmount = currentCartState.totalAmount + deliveryInfo.price.toDouble();
+                                  final shippingAddressFormatted = "${shippingInfo.fullName}, ${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.country}";
+
+                                  final newOrder = OrderModel(
+                                    id: '',
+                                    userId: userId,
+                                    items: orderItems,
+                                    totalAmount: finalTotalAmount,
+                                    deliveryFee: deliveryInfo.price.toDouble(),
+                                    shippingAddress: shippingAddressFormatted,
+                                    paymentMethodDetails: "Stripe Card",
+                                    createdAt: Timestamp.now(),
+                                    trackingNumber: 'N/A',
+                                    deliveryMethodInfo: "${deliveryInfo.name}, ${deliveryInfo.days}",
+                                    discountInfo: null,
+                                  );
+
+                                  _orderServices.createOrder(newOrder).then((_) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Order Placed Successfully!'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                    context.read<CartCubit>().clearCart();
+                                    Navigator.of(context).pushNamedAndRemoveUntil(
+                                      AppRoutes.orderSuccessRoute,
+                                      (route) => route.isFirst);
+                                  }).catchError((error) {
+                                    print("Failed to create order: $error");
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed to save order: $error')),
+                                    );
+                                  });
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please select shipping address and delivery method.')),
+                                  );
                                 }
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Order Placed (Cart was empty).'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                context.read<CartCubit>().clearCart();
+                                Navigator.of(context).pushNamedAndRemoveUntil(
+                                    AppRoutes.orderSuccessRoute,
+                                    (route) => route.isFirst);
                               }
-                              final summary = totalAmount + delivery;
-                              await checkoutCubit.makePayment(summary);
-                              checkoutCubit.getCheckoutData();
+                            } else {
+                               ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Cannot process order: User not logged in or data missing.')),
+                              );
                             }
-                          },
-                          hasCircularBorder: true,
-                        );
-                      },
-                    ),
-                  ],
+                          }
+                        },
+                        buildWhen: (previous, current) =>
+                            current is PaymentMade ||
+                            current is PaymentMakingFailed ||
+                            current is MakingPayment,
+                        builder: (context, submitState) {
+                          if (submitState is MakingPayment) {
+                            return MainButton(
+                              hasCircularBorder: true,
+                              child: const Center(child: CircularProgressIndicator.adaptive(backgroundColor: Colors.white)),
+                            );
+                          }
+                          return MainButton(
+                            text: 'Submit Order',
+                            onTap: () async {
+                              final cartStateForSubmit = context.read<CartCubit>().state;
+                              final checkoutStateForSubmit = context.read<CheckoutCubit>().state;
+
+                              if (checkoutStateForSubmit is CheckoutLoaded) {
+                                if (checkoutStateForSubmit.shippingAddress == null) {
+                                   ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please select a shipping address.')),
+                                  );
+                                  return;
+                                }
+                                 if (checkoutStateForSubmit.selectedDeliveryMethod == null) {
+                                   ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please select a delivery method.')),
+                                  );
+                                  return;
+                                }
+                              } else {
+                                 ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Checkout data not loaded.')),
+                                  );
+                                  return;
+                              }
+
+                              if (cartStateForSubmit is CartLoaded && checkoutStateForSubmit is CheckoutLoaded) {
+                                double totalAmount = cartStateForSubmit.totalAmount;
+                                double delivery = checkoutStateForSubmit.selectedDeliveryMethod!.price.toDouble();
+                                final summary = totalAmount + delivery;
+
+                                 if (cartStateForSubmit.cartProducts.isEmpty) {
+                                   ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Your cart is empty.')),
+                                    );
+                                    return;
+                                }
+                                // Avoid payment if summary is zero or less, unless cart is genuinely empty
+                                if (summary <= 0 ) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Cannot checkout with zero or negative amount.')),
+                                    );
+                                    return;
+                                }
+
+                                await checkoutCubit.makePayment(summary);
+                              } else {
+                                 ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Cart not loaded.')),
+                                  );
+                              }
+                            },
+                            hasCircularBorder: true,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          } else {
-            return const SizedBox.shrink();
-          }
-        },
+              );
+            } else {
+              return const SizedBox.shrink();
+            }
+          },
+        ),
       ),
     );
   }

@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
 import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
+import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
 import 'package:flutter_ecommerce/views/pages/cart_page.dart';
 import 'package:flutter_ecommerce/views/pages/home_page.dart';
-import 'package:flutter_ecommerce/views/pages/profle_page.dart';
+import 'package:flutter_ecommerce/views/pages/profile/profle_page.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 import 'chatbot_page.dart';
 import 'chatbot_wrapper.dart';
-
 
 class BottomNavbar extends StatefulWidget {
   const BottomNavbar({super.key});
@@ -32,143 +32,77 @@ class _BottomNavbarState extends State<BottomNavbar> {
         child: const HomePage(),
       ),
       Container(),
-      BlocProvider(
-        create: (context) {
-          final cubit = CartCubit();
-          cubit.getCartItems();
-          return cubit;
-        },
-        child: const CartPage(),
-      ),
+      const CartPage(),
       ChatbotWrapper(uid: 'your-uid'),
-      const ProfilePage()
+      BlocProvider(
+        create: (_) => CheckoutCubit()..getCheckoutData(),
+        child: const ProfilePage(),
+      ),
     ];
   }
 
-  // List<PersistentTabConfig> _navBarsItems() {
-  //   return [
-  //     PersistentTabConfig(
-  //       icon: const Icon(CupertinoIcons.home),
-  //       title: ("Home"),
-  //       activeColorPrimary: CupertinoColors.activeBlue,
-  //       inactiveColorPrimary: CupertinoColors.systemGrey,
-  //     ),
-  //     PersistentTabConfig(
-  //       icon: const Icon(CupertinoIcons.bag),
-  //       title: ("Shop"),
-  //       activeColorPrimary: CupertinoColors.activeBlue,
-  //       inactiveColorPrimary: CupertinoColors.systemGrey,
-  //     ),
-  //     PersistentTabConfig(
-  //       icon: const Icon(CupertinoIcons.shopping_cart),
-  //       title: ("Cart"),
-  //       activeColorPrimary: CupertinoColors.activeBlue,
-  //       inactiveColorPrimary: CupertinoColors.systemGrey,
-  //     ),
-  //     PersistentTabConfig(
-  //       icon: const Icon(Icons.favorite_border),
-  //       title: ("Favorites"),
-  //       activeColorPrimary: CupertinoColors.activeBlue,
-  //       inactiveColorPrimary: CupertinoColors.systemGrey,
-  //     ),
-  //     PersistentTabConfig(
-  //       icon: const Icon(CupertinoIcons.profile_circled),
-  //       title: ("Profile"),
-  //       activeColorPrimary: CupertinoColors.activeBlue,
-  //       inactiveColorPrimary: CupertinoColors.systemGrey,
-  //     ),
-  //   ];
-  // }
-
   @override
   Widget build(BuildContext context) {
+    final screens = _buildScreens();
+
     return Scaffold(
       body: PersistentTabView(
         controller: _bottomNavbarController,
         tabs: [
           PersistentTabConfig(
-            screen: _buildScreens()[0],
+            screen: screens[0],
             item: ItemConfig(
               icon: const Icon(CupertinoIcons.home),
               title: ("Home"),
               activeForegroundColor: Colors.redAccent,
-              // activeColorPrimary: CupertinoColors.activeBlue,
-              // inactiveColorPrimary: CupertinoColors.systemGrey,
             ),
           ),
           PersistentTabConfig(
-            screen: _buildScreens()[1],
+            screen: screens[1],
             item: ItemConfig(
               icon: const Icon(CupertinoIcons.bag),
               title: ("Shop"),
               activeForegroundColor: Colors.redAccent,
-              // activeColorPrimary: CupertinoColors.activeBlue,
-              // inactiveColorPrimary: CupertinoColors.systemGrey,
             ),
           ),
           PersistentTabConfig(
-            screen: _buildScreens()[2],
+            screen: screens[2],
             item: ItemConfig(
               icon: const Icon(CupertinoIcons.shopping_cart),
               title: ("Cart"),
               activeForegroundColor: Colors.redAccent,
-              // activeColorPrimary: CupertinoColors.activeBlue,
-              // inactiveColorPrimary: CupertinoColors.systemGrey,
             ),
           ),
           PersistentTabConfig(
-            screen: _buildScreens()[3],
+            screen: screens[3],
             item: ItemConfig(
               icon: const Icon(Icons.smart_toy),
               title: ("Chatbot"),
               activeForegroundColor: Colors.redAccent,
-              // activeColorPrimary: CupertinoColors.activeBlue,
-              // inactiveColorPrimary: CupertinoColors.systemGrey,
             ),
           ),
           PersistentTabConfig(
-            screen: _buildScreens()[4],
+            screen: screens[4],
             item: ItemConfig(
               icon: const Icon(CupertinoIcons.profile_circled),
               title: ("Profile"),
               activeForegroundColor: Colors.redAccent,
-              // activeColorPrimary: CupertinoColors.activeBlue,
-              // inactiveColorPrimary: CupertinoColors.systemGrey,
             ),
           ),
         ],
         navBarBuilder: (navbarConfig) => Style1BottomNavBar(
           navBarConfig: navbarConfig,
         ),
-        // screens: _buildScreens(),
-        // items: _navBarsItems(),
-        // confineInSafeArea: true,
-        backgroundColor: Colors.white, // Default is Colors.white.
-        handleAndroidBackButtonPress: true, // Default is true.
-        resizeToAvoidBottomInset:
-            true, // This needs to be true if you want to move up the screen when keyboard appears. Default is true.
-        stateManagement: true, // Default is true.
-        // hideNavigationBarWhenKeyboardShows:
-        //     true, // Recommended to set 'resizeToAvoidBottomInset' as true while using this argument. Default is true.
-        // decoration: NavBarDecoration(
-        //   borderRadius: BorderRadius.circular(10.0),
-        //   colorBehindNavBar: Colors.white,
-        // ),
+        backgroundColor: Colors.white,
+        handleAndroidBackButtonPress: true,
+        resizeToAvoidBottomInset: true,
+        stateManagement: true,
         popAllScreensOnTapOfSelectedTab: true,
         popActionScreens: PopActionScreensType.all,
-        // itemAnimationProperties: ItemAnimationProperties(
-        //   // Navigation Bar's items animation properties.
-        //   duration: Duration(milliseconds: 200),
-        //   curve: Curves.ease,
-        // ),
         screenTransitionAnimation: const ScreenTransitionAnimation(
-          // Screen transition animation on change of selected tab.
-          // animateTabTransition: true,
           curve: Curves.ease,
           duration: Duration(milliseconds: 200),
         ),
-        // navBarStyle:
-        //     NavBarStyle.style1, // Choose the nav bar style with this property.
       ),
     );
   }

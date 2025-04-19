@@ -42,6 +42,7 @@ class MyApp extends StatelessWidget {
         BlocProvider<CartCubit>(
           create: (context) => CartCubit()..getCartItems(),
         ),
+
       ],
       child: Builder(
         builder: (context) {

@@ -1,4 +1,6 @@
-class AddToCartModel {
+import 'package:equatable/equatable.dart';
+
+class AddToCartModel extends Equatable {
   final String id;
   final String productId;
   final String title;
@@ -9,7 +11,7 @@ class AddToCartModel {
   final String color;
   final String size;
 
-  AddToCartModel({
+  const AddToCartModel({
     required this.id,
     required this.title,
     required this.price,
@@ -46,46 +48,57 @@ class AddToCartModel {
   }
 
   Map<String, dynamic> toMap() {
-    final result = <String, dynamic>{};
-
-    result.addAll({'id': id});
-    result.addAll({'productId': productId});
-    result.addAll({'title': title});
-    result.addAll({'price': price});
-    result.addAll({'quantity': quantity});
-    result.addAll({'imgUrl': imgUrl});
-    result.addAll({'discountValue': discountValue});
-    result.addAll({'color': color});
-    result.addAll({'size': size});
-
-    return result;
+    return {
+      'id': id,
+      'productId': productId,
+      'title': title,
+      'price': price,
+      'quantity': quantity,
+      'imgUrl': imgUrl,
+      'discountValue': discountValue,
+      'color': color,
+      'size': size,
+    };
   }
 
   factory AddToCartModel.fromMap(Map<String, dynamic> map, String documentId) {
     return AddToCartModel(
       id: documentId,
-      title: map['title'] ?? '',
       productId: map['productId'] ?? '',
+      title: map['title'] ?? '',
       price: map['price']?.toDouble() ?? 0.0,
       quantity: map['quantity']?.toInt() ?? 0,
       imgUrl: map['imgUrl'] ?? '',
       discountValue: map['discountValue']?.toInt() ?? 0,
-      color: map['color'] ?? '',
+      color: map['color'] ?? 'Black',
       size: map['size'] ?? '',
     );
   }
-    factory AddToCartModel.empty() => AddToCartModel(
-          id: '',
-          productId: '',
-          title: '',
-          price: 0.0,
-          quantity: 0,
-          imgUrl: '',
-          discountValue: 0,
-          color: '',
-          size: '',
-        );
 
-    bool get isEmpty => id.isEmpty;
+  factory AddToCartModel.empty() => const AddToCartModel(
+        id: '',
+        productId: '',
+        title: '',
+        price: 0.0,
+        quantity: 0,
+        imgUrl: '',
+        discountValue: 0,
+        color: '',
+        size: '',
+      );
 
+  bool get isEmpty => id.isEmpty;
+
+  @override
+  List<Object?> get props => [
+        id,
+        productId,
+        title,
+        price,
+        quantity,
+        imgUrl,
+        discountValue,
+        color,
+        size,
+      ];
 }

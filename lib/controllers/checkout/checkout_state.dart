@@ -3,33 +3,40 @@ part of 'checkout_cubit.dart';
 @immutable
 sealed class CheckoutState {}
 
+/// Initial state
 final class CheckoutInitial extends CheckoutState {}
 
+/// Checkout data loading
 final class CheckoutLoading extends CheckoutState {}
 
+/// Checkout data loaded
 final class CheckoutLoaded extends CheckoutState {
   final List<DeliveryMethod> deliveryMethods;
   final ShippingAddress? shippingAddress;
   final DeliveryMethod? selectedDeliveryMethod;
+  final double? totalAmount;
 
-    CheckoutLoaded({
-      required this.deliveryMethods,
-      required this.selectedDeliveryMethod,
-      this.shippingAddress,
-    });
+  CheckoutLoaded({
+    required this.deliveryMethods,
+    required this.selectedDeliveryMethod,
+    required this.shippingAddress,
+    required this.totalAmount,
+  });
 
-    CheckoutLoaded copyWith({
-      List<DeliveryMethod>? deliveryMethods,
-      ShippingAddress? shippingAddress,
-      DeliveryMethod? selectedDeliveryMethod,
-    }) {
-      return CheckoutLoaded(
-        deliveryMethods: deliveryMethods ?? this.deliveryMethods,
-        shippingAddress: shippingAddress ?? this.shippingAddress,
-        selectedDeliveryMethod: selectedDeliveryMethod ?? this.selectedDeliveryMethod,
-      );
-    }
+  CheckoutLoaded copyWith({
+    List<DeliveryMethod>? deliveryMethods,
+    ShippingAddress? shippingAddress,
+    DeliveryMethod? selectedDeliveryMethod,
+    double? totalAmount,
+  }) {
+    return CheckoutLoaded(
+      deliveryMethods: deliveryMethods ?? this.deliveryMethods,
+      shippingAddress: shippingAddress ?? this.shippingAddress,
+      selectedDeliveryMethod: selectedDeliveryMethod ?? this.selectedDeliveryMethod,
+      totalAmount: totalAmount ?? this.totalAmount,
+    );
   }
+}
 
 final class CheckoutLoadingFailed extends CheckoutState {
   final String error;
@@ -37,6 +44,7 @@ final class CheckoutLoadingFailed extends CheckoutState {
   CheckoutLoadingFailed(this.error);
 }
 
+/// Address-related states
 final class FetchingAddresses extends CheckoutState {}
 
 final class AddressesFetched extends CheckoutState {
@@ -61,6 +69,7 @@ final class AddressAddingFailed extends CheckoutState {
   AddressAddingFailed(this.error);
 }
 
+/// Card-related states
 final class AddingCards extends CheckoutState {}
 
 final class CardsAdded extends CheckoutState {}
@@ -99,6 +108,7 @@ final class CardsFetchingFailed extends CheckoutState {
   CardsFetchingFailed(this.error);
 }
 
+/// Preferred payment method states
 final class MakingPreferred extends CheckoutState {}
 
 final class PreferredMade extends CheckoutState {}
@@ -109,6 +119,7 @@ final class PreferredMakingFailed extends CheckoutState {
   PreferredMakingFailed(this.error);
 }
 
+/// Payment process states
 final class MakingPayment extends CheckoutState {}
 
 final class PaymentMade extends CheckoutState {}

@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
 import 'package:flutter_ecommerce/controllers/product_details/product_details_cubit.dart';
@@ -13,6 +14,12 @@ import 'package:flutter_ecommerce/views/pages/checkout/shipping_addresses_page.d
 import 'package:flutter_ecommerce/views/pages/auth_page.dart';
 import 'package:flutter_ecommerce/views/pages/product_details.dart';
 import 'package:flutter_ecommerce/views/pages/checkout/order_success_page.dart';
+import 'package:flutter_ecommerce/views/pages/profile/my_orders_page.dart';
+import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
+import 'package:flutter_ecommerce/services/order_services.dart';
+import 'package:flutter_ecommerce/controllers/order/order_cubit.dart';
+import 'package:flutter_ecommerce/models/order_model.dart';
+import 'package:flutter_ecommerce/views/pages/profile/order_details_page.dart';
 
 Route<dynamic> onGenerate(RouteSettings settings) {
   switch (settings.name) {
@@ -77,7 +84,7 @@ Route<dynamic> onGenerate(RouteSettings settings) {
 
     case AppRoutes.orderSuccessRoute:
           return CupertinoPageRoute(
-            builder: (_) => const OrderSuccessPage(), // Tạo instance của trang thành công
+            builder: (_) => const OrderSuccessPage(),
             settings: settings,
           );
 
@@ -95,6 +102,30 @@ Route<dynamic> onGenerate(RouteSettings settings) {
         ),
         settings: settings,
       );
+    case AppRoutes.myOrdersPageRoute: // <-- THÊM CASE NÀY
+          return CupertinoPageRoute( // Hoặc MaterialPageRoute tùy bạn chọn
+            builder: (context) {
+              // Lấy AuthCubit đã được cung cấp ở cây widget phía trên
+              // Đảm bảo AuthCubit được cung cấp ở nơi cao hơn (ví dụ: main.dart)
+              final authCubit = BlocProvider.of<AuthCubit>(context);
+
+              // Tạo instance của OrderServices
+              // Lưu ý: Nếu bạn dùng Dependency Injection (DI), hãy lấy service từ DI container
+              final orderServices = OrderServicesImpl();
+
+              // Cung cấp OrderCubit cho trang MyOrdersPage và các widget con của nó
+              return BlocProvider(
+                create: (context) => OrderCubit(
+                  orderServices: orderServices,
+                  authCubit: authCubit, // Truyền AuthCubit vào
+                )..fetchOrders(), // Gọi fetchOrders() ngay khi Cubit được tạo
+                child: const MyOrdersPage(), // Trả về widget trang MyOrdersPage
+              );
+            },
+            settings: settings, // Chuyển tiếp settings nếu cần
+          );
+
+
     default:
       return CupertinoPageRoute(
         builder: (_) => const AuthPage(),

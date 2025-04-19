@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
+import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart'; // ✅ Import thêm nếu chưa có
 import 'package:flutter_ecommerce/utilities/routes.dart';
 import 'package:flutter_ecommerce/views/widgets/cart_list_item.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
@@ -12,7 +13,7 @@ class CartPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cartCubit = BlocProvider.of<CartCubit>(context);
-
+     print('HASHCODE MyCart: ${context.read<CartCubit>().hashCode}');
     return SafeArea(
       child: BlocBuilder<CartCubit, CartState>(
         bloc: cartCubit,
@@ -53,6 +54,7 @@ class CartPage extends StatelessWidget {
                       'My Cart',
                       style: Theme.of(context).textTheme.titleLarge!.copyWith(
                             fontWeight: FontWeight.bold,
+                            fontSize: 32,
                             color: Colors.black,
                           ),
                     ),
@@ -72,17 +74,16 @@ class CartPage extends StatelessWidget {
                         itemBuilder: (BuildContext context, int i) {
                           final cartItem = cartProducts[i];
                           return CartListItem(
-                          cartItem: cartItem,
+                            cartItem: cartItem,
                             onRemove: () {
-                                    cartCubit.removeFromCart(cartItem);
-                                  },
-
+                              cartCubit.removeFromCart(cartItem);
+                            },
                             onIncrease: () {
-                                cartCubit.increaseQuantity(cartItem);
-                              },
-                              onDecrease: () {
-                                cartCubit.decreaseQuantity(cartItem);
-                              },
+                              cartCubit.increaseQuantity(cartItem);
+                            },
+                            onDecrease: () {
+                              cartCubit.decreaseQuantity(cartItem);
+                            },
                           );
                         },
                       ),
@@ -94,8 +95,7 @@ class CartPage extends StatelessWidget {
                     const SizedBox(height: 32.0),
                     MainButton(
                       text: 'CHECK OUT',
-                      onTap: () =>
-                          Navigator.of(context, rootNavigator: true).pushNamed(
+                      onTap: () => Navigator.of(context, rootNavigator: true).pushNamed(
                         AppRoutes.checkoutPageRoute,
                       ),
                       hasCircularBorder: true,

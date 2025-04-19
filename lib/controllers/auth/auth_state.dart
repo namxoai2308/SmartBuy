@@ -1,22 +1,42 @@
 part of 'auth_cubit.dart';
 
 @immutable
-sealed class AuthState {}
+abstract class AuthState extends Equatable {
+  const AuthState();
 
-final class AuthInitial extends AuthState {}
+  @override
+  List<Object?> get props => [];
+}
 
-final class AuthSuccess extends AuthState {}
+final class AuthInitial extends AuthState {
+  const AuthInitial();
+}
+
+final class AuthLoading extends AuthState {
+  const AuthLoading();
+}
+
+final class AuthSuccess extends AuthState {
+  final User user;
+
+  const AuthSuccess(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}
 
 final class AuthFailed extends AuthState {
   final String error;
+  const AuthFailed(this.error);
 
-  AuthFailed(this.error);
+  @override
+  List<Object?> get props => [error];
 }
-
-final class AuthLoading extends AuthState {}
 
 final class ToggleFormType extends AuthState {
   final AuthFormType authFormType;
+  const ToggleFormType(this.authFormType);
 
-  ToggleFormType(this.authFormType);
+  @override
+  List<Object?> get props => [authFormType];
 }
