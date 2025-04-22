@@ -32,7 +32,7 @@ class CartPage extends StatelessWidget {
 
             return Padding(
               padding:
-                  const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
               child: RefreshIndicator(
                 onRefresh: () async {
                   await cartCubit.getCartItems();
@@ -54,7 +54,7 @@ class CartPage extends StatelessWidget {
                       'My Cart',
                       style: Theme.of(context).textTheme.titleLarge!.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontSize: 32,
+                            fontSize: 34,
                             color: Colors.black,
                           ),
                     ),

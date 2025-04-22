@@ -19,9 +19,22 @@ class ShippingAddress {
     this.isDefault = false,
   });
 
+  factory ShippingAddress.empty() {
+    return ShippingAddress(
+      id: '',
+      fullName: '',
+      country: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      isDefault: false,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     final result = <String, dynamic>{};
-  
+
     result.addAll({'id': id});
     result.addAll({'fullName': fullName});
     result.addAll({'country': country});
@@ -30,7 +43,7 @@ class ShippingAddress {
     result.addAll({'state': state});
     result.addAll({'zipCode': zipCode});
     result.addAll({'isDefault': isDefault});
-  
+
     return result;
   }
 

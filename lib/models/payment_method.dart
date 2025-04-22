@@ -17,17 +17,26 @@ class PaymentMethod {
     this.isPreferred = false,
   });
 
+  static PaymentMethod empty() {
+    return PaymentMethod(
+      id: '',
+      name: '',
+      cardNumber: '',
+      expiryDate: '',
+      cvv: '',
+      isPreferred: false,
+    );
+  }
+
   Map<String, dynamic> toMap() {
-    final result = <String, dynamic>{};
-
-    result.addAll({'id': id});
-    result.addAll({'name': name});
-    result.addAll({'cardNumber': cardNumber});
-    result.addAll({'expiryDate': expiryDate});
-    result.addAll({'cvv': cvv});
-    result.addAll({'isPreferred': isPreferred});
-
-    return result;
+    return {
+      'id': id,
+      'name': name,
+      'cardNumber': cardNumber,
+      'expiryDate': expiryDate,
+      'cvv': cvv,
+      'isPreferred': isPreferred,
+    };
   }
 
   factory PaymentMethod.fromMap(Map<String, dynamic> map) {
@@ -37,7 +46,7 @@ class PaymentMethod {
       cardNumber: map['cardNumber'] ?? '',
       expiryDate: map['expiryDate'] ?? '',
       cvv: map['cvv'] ?? '',
-      isPreferred: map['isPreferred'] ?? '',
+      isPreferred: map['isPreferred'] ?? false,
     );
   }
 

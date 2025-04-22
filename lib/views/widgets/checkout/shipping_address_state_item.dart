@@ -43,6 +43,7 @@ class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              /// Header with Name + Edit
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -53,13 +54,19 @@ class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
                         ),
                   ),
                   InkWell(
-                    onTap: () => Navigator.of(context).pushNamed(
-                      AppRoutes.addShippingAddressRoute,
-                      arguments: AddShippingAddressArgs(
-                        shippingAddress: widget.shippingAddress,
-                        checkoutCubit: checkoutCubit,
-                      ),
-                    ),
+                    onTap: () async {
+                      final result = await Navigator.of(context).pushNamed(
+                        AppRoutes.addShippingAddressRoute,
+                        arguments: AddShippingAddressArgs(
+                          shippingAddress: widget.shippingAddress,
+                          checkoutCubit: checkoutCubit,
+                        ),
+                      );
+
+                      if (result == true && mounted) {
+                        checkoutCubit.getShippingAddresses();
+                      }
+                    },
                     child: Text(
                       'Edit',
                       style: Theme.of(context).textTheme.labelSmall!.copyWith(
@@ -70,6 +77,8 @@ class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
                 ],
               ),
               const SizedBox(height: 8.0),
+
+              /// Address Info
               Text(
                 widget.shippingAddress.address,
                 style: Theme.of(context).textTheme.labelMedium,
@@ -78,16 +87,25 @@ class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
                 '${widget.shippingAddress.city}, ${widget.shippingAddress.state}, ${widget.shippingAddress.country}',
                 style: Theme.of(context).textTheme.labelMedium,
               ),
+
+              /// Default Checkbox
               CheckboxListTile(
                 title: const Text("Default shipping address"),
                 value: checkedValue,
                 onChanged: (newValue) async {
+                  if (newValue == null || !newValue) return;
+
                   setState(() {
-                    checkedValue = newValue!;
+                    checkedValue = true;
                   });
-                  final newAddress =
-                      widget.shippingAddress.copyWith(isDefault: newValue);
-                  await checkoutCubit.saveAddress(newAddress);
+
+                  final updated = widget.shippingAddress.copyWith(isDefault: true);
+                  await checkoutCubit.saveAddress(updated);
+
+
+                  if (mounted) {
+                    checkoutCubit.getShippingAddresses();
+                  }
                 },
                 activeColor: Colors.black,
                 contentPadding: EdgeInsets.zero,

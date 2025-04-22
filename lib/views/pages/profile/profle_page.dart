@@ -5,7 +5,6 @@ import 'package:flutter_ecommerce/utilities/routes.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
 
-
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -42,10 +41,10 @@ class ProfilePage extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 0),
-              child: Text(
+              child: const Text(
                 "My Profile",
-                style: const TextStyle(
-                  fontSize: 32,
+                style: TextStyle(
+                  fontSize: 34,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -97,7 +96,6 @@ class ProfilePage extends StatelessWidget {
                 children: [
                   _buildProfileTile(
                     context,
-                    icon: Icons.receipt_long_outlined,
                     title: "My orders",
                     subtitle: "Check your order status",
                     onTap: () {
@@ -106,7 +104,6 @@ class ProfilePage extends StatelessWidget {
                   ),
                   _buildProfileTile(
                     context,
-                    icon: Icons.location_on_outlined,
                     title: "Shipping addresses",
                     subtitle: "Manage your addresses",
                     onTap: () {
@@ -119,7 +116,6 @@ class ProfilePage extends StatelessWidget {
                   ),
                   _buildProfileTile(
                     context,
-                    icon: Icons.payment_outlined,
                     title: "Payment methods",
                     subtitle: "Manage payment options",
                     onTap: () {
@@ -128,70 +124,69 @@ class ProfilePage extends StatelessWidget {
                   ),
                   _buildProfileTile(
                     context,
-                    icon: Icons.sell_outlined,
                     title: "Promocodes",
                     subtitle: "View available promocodes",
                     onTap: () {},
                   ),
                   _buildProfileTile(
                     context,
-                    icon: Icons.reviews_outlined,
                     title: "My reviews",
                     subtitle: "See your product reviews",
                     onTap: () {},
                   ),
                   _buildProfileTile(
                     context,
-                    icon: Icons.settings_outlined,
                     title: "Settings",
                     subtitle: "Notifications, password, etc.",
                     onTap: () {},
                   ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
-              child: BlocListener<AuthCubit, AuthState>(
-                listener: (context, state) {
-                  if (state is AuthInitial) {
-                    Navigator.of(context, rootNavigator: true)
-                        .pushNamedAndRemoveUntil(AppRoutes.loginPageRoute, (route) => false);
-                  } else if (state is AuthFailed) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Logout failed: ${state.error}')),
-                    );
-                  }
-                },
-                child: BlocBuilder<AuthCubit, AuthState>(
-                  buildWhen: (previous, current) =>
-                      previous is AuthLoading != current is AuthLoading,
-                  builder: (context, state) {
-                    if (state is AuthLoading) {
-                      return MainButton(
-                        hasCircularBorder: true,
-                        onTap: null,
-                        child: const Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    return MainButton(
-                      text: 'Log Out',
-                      onTap: () async {
-                        await authCubit.logout();
+                  const SizedBox(height: 30),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: BlocListener<AuthCubit, AuthState>(
+                      listener: (context, state) {
+                        if (state is AuthInitial) {
+                          Navigator.of(context, rootNavigator: true)
+                              .pushNamedAndRemoveUntil(AppRoutes.loginPageRoute, (route) => false);
+                        } else if (state is AuthFailed) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Logout failed: ${state.error}')),
+                          );
+                        }
                       },
-                      hasCircularBorder: true,
-                    );
-                  },
-                ),
+                      child: BlocBuilder<AuthCubit, AuthState>(
+                        buildWhen: (previous, current) =>
+                            previous is AuthLoading != current is AuthLoading,
+                        builder: (context, state) {
+                          if (state is AuthLoading) {
+                            return MainButton(
+                              hasCircularBorder: true,
+                              onTap: null,
+                              child: const Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          return MainButton(
+                            text: 'LOG OUT',
+                            onTap: () async {
+                              await authCubit.logout();
+                            },
+                            hasCircularBorder: true,
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
           ],
@@ -202,25 +197,34 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildProfileTile(
     BuildContext context, {
-    required IconData icon,
     required String title,
     required String subtitle,
     VoidCallback? onTap,
   }) {
     return ListTile(
-      leading: Icon(icon, color: Colors.grey[700], size: 24),
       title: Text(
         title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
       ),
       subtitle: Text(
         subtitle,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+        style: TextStyle(
+          fontSize: 14,
+          color: Colors.grey[600],
+        ),
       ),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Colors.black45,
+      ),
       onTap: onTap,
       dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 8.0),
     );
   }
 }

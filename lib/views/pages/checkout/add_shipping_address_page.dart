@@ -69,7 +69,7 @@ class _AddShippingAddressPageState extends State<AddShippingAddressPage> {
       await checkoutCubit.saveAddress(address);
 
       if (!mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Address saved successfully')),
       );

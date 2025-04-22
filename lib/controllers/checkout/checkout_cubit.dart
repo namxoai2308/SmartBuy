@@ -45,6 +45,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     try {
       await checkoutServices.setPaymentMethod(paymentMethod);
       emit(CardsAdded());
+      await fetchCards();
     } catch (e) {
       emit(CardsAddingFailed(e.toString()));
     }
@@ -71,19 +72,42 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     }
   }
 
-  Future<void> makePreferred(PaymentMethod paymentMethod) async {
-    emit(FetchingCards());
-    try {
-      final preferred = await checkoutServices.paymentMethods(true);
-      for (var method in preferred) {
-        await checkoutServices.setPaymentMethod(method.copyWith(isPreferred: false));
-      }
-      await checkoutServices.setPaymentMethod(paymentMethod.copyWith(isPreferred: true));
-      emit(PreferredMade());
-    } catch (e) {
-      emit(PreferredMakingFailed(e.toString()));
+Future<void> makePreferred(PaymentMethod paymentMethod) async {
+  emit(MakingPreferred());
+  try {
+    final preferred = await checkoutServices.paymentMethods(true);
+    for (var method in preferred) {
+      await checkoutServices.setPaymentMethod(
+        method.copyWith(isPreferred: false),
+      );
     }
+    await checkoutServices.setPaymentMethod(
+      paymentMethod.copyWith(isPreferred: true),
+    );
+
+    final updatedPaymentMethods = await checkoutServices.paymentMethods();
+    final updatedPreferred = updatedPaymentMethods.firstWhere(
+      (method) => method.isPreferred,
+      orElse: () => updatedPaymentMethods.isNotEmpty
+          ? updatedPaymentMethods.first
+          : PaymentMethod.empty(),
+    );
+
+    final currentState = state;
+    if (currentState is CheckoutLoaded) {
+      emit(currentState.copyWith(
+        selectedPaymentMethod: updatedPreferred,
+      ));
+    }
+
+    // 👉 Emit PreferredMade để trigger Navigator.pop & cập nhật UI ở màn trước
+    emit(PreferredMade());
+  } catch (e) {
+    emit(PreferredMakingFailed(e.toString()));
   }
+}
+
+
 
   Future<void> getCheckoutData() async {
     print('CheckoutCubit (Instance: $hashCode): getCheckoutData() Called');
@@ -92,10 +116,15 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       final user = authServices.currentUser;
       final addresses = await checkoutServices.shippingAddresses(user!.uid);
       final delivery = await checkoutServices.deliveryMethods();
+      final paymentMethods = await checkoutServices.paymentMethods();
+
       emit(CheckoutLoaded(
         deliveryMethods: delivery,
         selectedDeliveryMethod: delivery.isNotEmpty ? delivery.first : null,
-        shippingAddress: addresses.isNotEmpty ? addresses.first : null,
+        shippingAddress: addresses.isNotEmpty ? addresses.first : ShippingAddress.empty(),
+        selectedPaymentMethod: paymentMethods.isNotEmpty
+            ? paymentMethods.firstWhere((m) => m.isPreferred, orElse: () => paymentMethods.first)
+            : null,
         totalAmount: 0.0,
       ));
     } catch (e) {
@@ -103,7 +132,6 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     }
   }
 
-  /// ✅ Load danh sách địa chỉ mà không làm mất `CheckoutLoaded`
   Future<void> getShippingAddresses() async {
     final currentState = state;
     emit(FetchingAddresses());
@@ -112,10 +140,9 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       final addresses = await checkoutServices.shippingAddresses(user!.uid);
       emit(AddressesFetched(addresses));
 
-      // Nếu đang là CheckoutLoaded thì giữ lại các dữ liệu cũ
       if (currentState is CheckoutLoaded) {
         emit(currentState.copyWith(
-          shippingAddress: addresses.isNotEmpty ? addresses.first : null,
+          shippingAddress: addresses.isNotEmpty ? addresses.first : ShippingAddress.empty(),
         ));
       }
     } catch (e) {
@@ -144,18 +171,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
         final updatedAddresses = await checkoutServices.shippingAddresses(user.uid);
         final updatedDefaultAddress = updatedAddresses.firstWhere(
           (a) => a.isDefault,
-          orElse: () => updatedAddresses.isNotEmpty
-              ? updatedAddresses.first
-              : ShippingAddress(
-                  id: 'default-id',
-                  fullName: 'Unknown',
-                  country: 'Unknown',
-                  address: 'Unknown',
-                  city: 'Unknown',
-                  state: 'Unknown',
-                  zipCode: '00000',
-                  isDefault: false,
-                ),
+          orElse: () => updatedAddresses.isNotEmpty ? updatedAddresses.first : ShippingAddress.empty(),
         );
         emit(currentState.copyWith(
           shippingAddress: updatedDefaultAddress,
@@ -167,7 +183,6 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       emit(AddressAddingFailed(e.toString()));
     }
   }
-
 
   void setSelectedAddress(ShippingAddress address) {
     print('CheckoutCubit (Instance: $hashCode): setSelectedAddress() Called');

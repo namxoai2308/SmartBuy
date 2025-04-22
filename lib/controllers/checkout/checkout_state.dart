@@ -15,12 +15,14 @@ final class CheckoutLoaded extends CheckoutState {
   final ShippingAddress? shippingAddress;
   final DeliveryMethod? selectedDeliveryMethod;
   final double? totalAmount;
+  final PaymentMethod? selectedPaymentMethod;
 
   CheckoutLoaded({
     required this.deliveryMethods,
     this.selectedDeliveryMethod,
     this.shippingAddress,
     required this.totalAmount,
+    this.selectedPaymentMethod,
   });
 
   CheckoutLoaded copyWith({
@@ -28,12 +30,14 @@ final class CheckoutLoaded extends CheckoutState {
     ShippingAddress? shippingAddress,
     DeliveryMethod? selectedDeliveryMethod,
     double? totalAmount,
+    PaymentMethod? selectedPaymentMethod,
   }) {
     return CheckoutLoaded(
       deliveryMethods: deliveryMethods ?? this.deliveryMethods,
       shippingAddress: shippingAddress ?? this.shippingAddress,
       selectedDeliveryMethod: selectedDeliveryMethod ?? this.selectedDeliveryMethod,
       totalAmount: totalAmount ?? this.totalAmount,
+      selectedPaymentMethod: selectedPaymentMethod ?? this.selectedPaymentMethod,
     );
   }
 }
