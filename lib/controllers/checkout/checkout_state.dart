@@ -18,8 +18,8 @@ final class CheckoutLoaded extends CheckoutState {
 
   CheckoutLoaded({
     required this.deliveryMethods,
-    required this.selectedDeliveryMethod,
-    required this.shippingAddress,
+    this.selectedDeliveryMethod,
+    this.shippingAddress,
     required this.totalAmount,
   });
 

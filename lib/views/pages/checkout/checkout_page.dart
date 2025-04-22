@@ -17,7 +17,6 @@ import 'package:flutter_ecommerce/views/widgets/checkout/payment_component.dart'
 import 'package:flutter_ecommerce/views/widgets/checkout/shipping_address_component.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
 
-
 class CheckoutPage extends StatefulWidget {
   const CheckoutPage({super.key});
 
@@ -26,32 +25,55 @@ class CheckoutPage extends StatefulWidget {
 }
 
 class _CheckoutPageState extends State<CheckoutPage> {
-  // Ideally, inject OrderServices instead of creating it here
   final OrderServices _orderServices = OrderServicesImpl();
+  final String _pageInstanceId = DateTime.now().millisecondsSinceEpoch.toString();
 
+  @override
+  void initState() {
+    super.initState();
+     print('--- CheckoutPage ($_pageInstanceId) initState ---');
+    final checkoutCubit = BlocProvider.of<CheckoutCubit>(context, listen: false);
+    print('CheckoutPage ($_pageInstanceId) initState: Current state is ${checkoutCubit.state.runtimeType}');
+    if (checkoutCubit.state is! CheckoutLoaded) {
+          print('CheckoutPage ($_pageInstanceId) initState: State is NOT CheckoutLoaded. Calling getCheckoutData().');
+          checkoutCubit.getCheckoutData();
+        } else {
+          print('CheckoutPage ($_pageInstanceId) initState: State IS CheckoutLoaded. Skipping getCheckoutData().');
+        }
+  }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    print('--- CheckoutPage ($_pageInstanceId) didChangeDependencies ---');
+    // Kiểm tra xem có logic nào ở đây vô tình gọi getCheckoutData không
+  }
+
+  @override
+  void dispose() {
+    print('--- CheckoutPage ($_pageInstanceId) dispose ---'); // Xem trang có bị dispose không
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final checkoutCubit = BlocProvider.of<CheckoutCubit>(context);
 
-    Widget shippingAddressComponent(ShippingAddress? shippingAddress) {
+    Widget buildShippingAddressComponent(ShippingAddress? shippingAddress) {
+       final checkoutCubit = context.read<CheckoutCubit>();
       if (shippingAddress == null) {
         return Center(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text('No Shipping Addresses!'),
               const SizedBox(height: 6.0),
               InkWell(
                 onTap: () async {
-                  await Navigator.of(context).pushNamed(
-                    AppRoutes.addShippingAddressRoute,
-                    arguments: AddShippingAddressArgs(
-                      checkoutCubit: checkoutCubit,
-                      shippingAddress: shippingAddress,
-                    ),
+                  Navigator.of(context).pushNamed(
+                    AppRoutes.shippingAddressesRoute,
+                    arguments: context.read<CheckoutCubit>(),
                   );
-                  // Consider if getCheckoutData is still needed or if state updates automatically
-                  // checkoutCubit.getCheckoutData();
+
+
                 },
                 child: Text(
                   'Add new one',
@@ -71,7 +93,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
       }
     }
 
-    Widget deliveryMethodsComponent(List<DeliveryMethod> deliveryMethods) {
+    Widget buildDeliveryMethodsComponent(List<DeliveryMethod> deliveryMethods) {
+      final checkoutCubit = context.read<CheckoutCubit>();
       if (deliveryMethods.isEmpty) {
         return const Center(
           child: Text('No delivery methods available!'),
@@ -107,8 +130,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     return BlocListener<CartCubit, CartState>(
       listener: (context, cartListenState) {
         if (cartListenState is CartLoaded) {
-          // This might be slightly delayed compared to reading directly
-          // checkoutCubit.updateCartTotalAmount(cartListenState.totalAmount);
+          // Optional: Update total amount if needed, potentially via a dedicated Cubit method
         }
       },
       child: Scaffold(
@@ -120,7 +142,6 @@ class _CheckoutPageState extends State<CheckoutPage> {
           centerTitle: true,
         ),
         body: BlocBuilder<CheckoutCubit, CheckoutState>(
-          bloc: checkoutCubit,
           buildWhen: (previous, current) =>
               current is CheckoutLoading ||
               current is CheckoutLoaded ||
@@ -146,7 +167,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8.0),
-                      shippingAddressComponent(shippingAddress),
+                      buildShippingAddressComponent(shippingAddress),
                       const SizedBox(height: 24.0),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -180,12 +201,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8.0),
-                      deliveryMethodsComponent(deliveryMethods),
+                      buildDeliveryMethodsComponent(deliveryMethods),
                       const SizedBox(height: 32.0),
-                      const CheckoutOrderDetails(), // Uses CartCubit via context.watch internally
+                      const CheckoutOrderDetails(),
                       const SizedBox(height: 64.0),
                       BlocConsumer<CheckoutCubit, CheckoutState>(
-                        bloc: checkoutCubit,
                         listenWhen: (previous, current) =>
                             current is PaymentMakingFailed ||
                             current is PaymentMade,
@@ -286,6 +306,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             current is PaymentMakingFailed ||
                             current is MakingPayment,
                         builder: (context, submitState) {
+                           final checkoutCubit = context.read<CheckoutCubit>();
                           if (submitState is MakingPayment) {
                             return MainButton(
                               hasCircularBorder: true,
@@ -329,7 +350,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     );
                                     return;
                                 }
-                                // Avoid payment if summary is zero or less, unless cart is genuinely empty
+
                                 if (summary <= 0 ) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('Cannot checkout with zero or negative amount.')),

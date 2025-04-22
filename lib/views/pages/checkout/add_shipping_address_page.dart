@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
-import 'package:flutter_ecommerce/controllers/database_controller.dart';
 import 'package:flutter_ecommerce/models/shipping_address.dart';
 import 'package:flutter_ecommerce/utilities/constants.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
 import 'package:flutter_ecommerce/views/widgets/main_dialog.dart';
-import 'package:provider/provider.dart';
 
 class AddShippingAddressPage extends StatefulWidget {
   final ShippingAddress? shippingAddress;
@@ -24,7 +22,9 @@ class _AddShippingAddressPageState extends State<AddShippingAddressPage> {
   final _stateController = TextEditingController();
   final _zipCodeController = TextEditingController();
   final _countryController = TextEditingController();
+
   ShippingAddress? shippingAddress;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -52,43 +52,49 @@ class _AddShippingAddressPageState extends State<AddShippingAddressPage> {
   }
 
   Future<void> saveAddress(CheckoutCubit checkoutCubit) async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
     try {
-      if (_formKey.currentState!.validate()) {
-        final address = ShippingAddress(
-          id: shippingAddress != null
-              ? shippingAddress!.id
-              : documentIdFromLocalData(),
-          fullName: _fullNameController.text.trim(),
-          country: _countryController.text.trim(),
-          address: _addressController.text.trim(),
-          city: _cityController.text.trim(),
-          state: _stateController.text.trim(),
-          zipCode: _zipCodeController.text.trim(),
-        );
-        await checkoutCubit.saveAddress(address);
-        // await database.saveAddress(address);
-        if (!mounted) return;
-        Navigator.of(context).pop();
-      }
+      final address = ShippingAddress(
+        id: shippingAddress?.id ?? documentIdFromLocalData(),
+        fullName: _fullNameController.text.trim(),
+        country: _countryController.text.trim(),
+        address: _addressController.text.trim(),
+        city: _cityController.text.trim(),
+        state: _stateController.text.trim(),
+        zipCode: _zipCodeController.text.trim(),
+      );
+
+      await checkoutCubit.saveAddress(address);
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Address saved successfully')),
+      );
     } catch (e) {
+      if (!mounted) return;
       MainDialog(
-              context: context,
-              title: 'Error Saving Address',
-              content: e.toString())
-          .showAlertDialog();
+        context: context,
+        title: 'Error Saving Address',
+        content: e.toString(),
+      ).showAlertDialog();
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final checkoutCubit = BlocProvider.of<CheckoutCubit>(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           shippingAddress != null
-              ? 'Editing Shipping Address'
-              : 'Adding Shipping Address',
+              ? 'Edit Shipping Address'
+              : 'Add Shipping Address',
           style: Theme.of(context).textTheme.labelMedium,
         ),
         centerTitle: true,
@@ -109,7 +115,7 @@ class _AddShippingAddressPageState extends State<AddShippingAddressPage> {
                     filled: true,
                   ),
                   validator: (value) =>
-                      value!.isNotEmpty ? null : 'Please enter your name',
+                      value!.isNotEmpty ? null : 'Please enter your full name',
                 ),
                 const SizedBox(height: 16.0),
                 TextFormField(
@@ -120,7 +126,7 @@ class _AddShippingAddressPageState extends State<AddShippingAddressPage> {
                     filled: true,
                   ),
                   validator: (value) =>
-                      value!.isNotEmpty ? null : 'Please enter your name',
+                      value!.isNotEmpty ? null : 'Please enter your address',
                 ),
                 const SizedBox(height: 16.0),
                 TextFormField(
@@ -131,7 +137,7 @@ class _AddShippingAddressPageState extends State<AddShippingAddressPage> {
                     filled: true,
                   ),
                   validator: (value) =>
-                      value!.isNotEmpty ? null : 'Please enter your name',
+                      value!.isNotEmpty ? null : 'Please enter your city',
                 ),
                 const SizedBox(height: 16.0),
                 TextFormField(
@@ -141,8 +147,9 @@ class _AddShippingAddressPageState extends State<AddShippingAddressPage> {
                     fillColor: Colors.white,
                     filled: true,
                   ),
-                  validator: (value) =>
-                      value!.isNotEmpty ? null : 'Please enter your name',
+                  validator: (value) => value!.isNotEmpty
+                      ? null
+                      : 'Please enter your state or province',
                 ),
                 const SizedBox(height: 16.0),
                 TextFormField(
@@ -153,7 +160,7 @@ class _AddShippingAddressPageState extends State<AddShippingAddressPage> {
                     filled: true,
                   ),
                   validator: (value) =>
-                      value!.isNotEmpty ? null : 'Please enter your name',
+                      value!.isNotEmpty ? null : 'Please enter your zip code',
                 ),
                 const SizedBox(height: 16.0),
                 TextFormField(
@@ -164,12 +171,12 @@ class _AddShippingAddressPageState extends State<AddShippingAddressPage> {
                     filled: true,
                   ),
                   validator: (value) =>
-                      value!.isNotEmpty ? null : 'Please enter your name',
+                      value!.isNotEmpty ? null : 'Please enter your country',
                 ),
                 const SizedBox(height: 32.0),
                 MainButton(
-                  text: 'Save Address',
-                  onTap: () => saveAddress(checkoutCubit),
+                  text: _isLoading ? 'Saving...' : 'Save Address',
+                  onTap: _isLoading ? null : () => saveAddress(checkoutCubit),
                   hasCircularBorder: true,
                 ),
               ],

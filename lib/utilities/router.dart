@@ -102,27 +102,20 @@ Route<dynamic> onGenerate(RouteSettings settings) {
         ),
         settings: settings,
       );
-    case AppRoutes.myOrdersPageRoute: // <-- THÊM CASE NÀY
-          return CupertinoPageRoute( // Hoặc MaterialPageRoute tùy bạn chọn
+    case AppRoutes.myOrdersPageRoute:
+          return CupertinoPageRoute(
             builder: (context) {
-              // Lấy AuthCubit đã được cung cấp ở cây widget phía trên
-              // Đảm bảo AuthCubit được cung cấp ở nơi cao hơn (ví dụ: main.dart)
               final authCubit = BlocProvider.of<AuthCubit>(context);
-
-              // Tạo instance của OrderServices
-              // Lưu ý: Nếu bạn dùng Dependency Injection (DI), hãy lấy service từ DI container
               final orderServices = OrderServicesImpl();
-
-              // Cung cấp OrderCubit cho trang MyOrdersPage và các widget con của nó
               return BlocProvider(
                 create: (context) => OrderCubit(
                   orderServices: orderServices,
-                  authCubit: authCubit, // Truyền AuthCubit vào
-                )..fetchOrders(), // Gọi fetchOrders() ngay khi Cubit được tạo
-                child: const MyOrdersPage(), // Trả về widget trang MyOrdersPage
+                  authCubit: authCubit,
+                )..fetchOrders(),
+                child: const MyOrdersPage(),
               );
             },
-            settings: settings, // Chuyển tiếp settings nếu cần
+            settings: settings,
           );
 
 

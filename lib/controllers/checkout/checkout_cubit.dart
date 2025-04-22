@@ -11,29 +11,37 @@ import 'package:meta/meta.dart';
 part 'checkout_state.dart';
 
 class CheckoutCubit extends Cubit<CheckoutState> {
-  CheckoutCubit() : super(CheckoutInitial());
+  CheckoutCubit() : super(CheckoutInitial()) {
+    print('--- CheckoutCubit Created (Instance: $hashCode) ---');
+  }
 
   final checkoutServices = CheckoutServicesImpl();
   final authServices = AuthServicesImpl();
   final stripeServices = StripeServices.instance;
 
-  // Thanh toán bằng Stripe
+  @override
+  void emit(CheckoutState state) {
+    print('CheckoutCubit (Instance: $hashCode) Emitting State: ${state.runtimeType}');
+    if (isClosed) {
+      print('CheckoutCubit (Instance: $hashCode) Warning: Emitting on a closed cubit');
+      return;
+    }
+    super.emit(state);
+  }
+
+  // Stripe Payment
   Future<void> makePayment(double amount) async {
     emit(MakingPayment());
-
     try {
       await stripeServices.makePayment(amount, 'usd');
       emit(PaymentMade());
     } catch (e) {
-      debugPrint(e.toString());
       emit(PaymentMakingFailed(e.toString()));
     }
   }
 
-  // Thêm phương thức thanh toán
   Future<void> addCard(PaymentMethod paymentMethod) async {
     emit(AddingCards());
-
     try {
       await checkoutServices.setPaymentMethod(paymentMethod);
       emit(CardsAdded());
@@ -42,67 +50,52 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     }
   }
 
-  // Xóa phương thức thanh toán
   Future<void> deleteCard(PaymentMethod paymentMethod) async {
     emit(DeletingCards(paymentMethod.id));
-
     try {
       await checkoutServices.deletePaymentMethod(paymentMethod);
       emit(CardsDeleted());
-      await fetchCards(); // Cập nhật danh sách sau khi xóa
+      await fetchCards();
     } catch (e) {
       emit(CardsDeletingFailed(e.toString()));
     }
   }
 
-  // Lấy danh sách phương thức thanh toán
   Future<void> fetchCards() async {
     emit(FetchingCards());
-
     try {
-      final paymentMethods = await checkoutServices.paymentMethods();
-      emit(CardsFetched(paymentMethods));
+      final cards = await checkoutServices.paymentMethods();
+      emit(CardsFetched(cards));
     } catch (e) {
       emit(CardsFetchingFailed(e.toString()));
     }
   }
 
-  // Chọn phương thức thanh toán ưu tiên
   Future<void> makePreferred(PaymentMethod paymentMethod) async {
     emit(FetchingCards());
-
     try {
-      final preferredMethods = await checkoutServices.paymentMethods(true);
-
-      for (var method in preferredMethods) {
-        final newMethod = method.copyWith(isPreferred: false);
-        await checkoutServices.setPaymentMethod(newMethod);
+      final preferred = await checkoutServices.paymentMethods(true);
+      for (var method in preferred) {
+        await checkoutServices.setPaymentMethod(method.copyWith(isPreferred: false));
       }
-
-      final updatedPreferred = paymentMethod.copyWith(isPreferred: true);
-      await checkoutServices.setPaymentMethod(updatedPreferred);
-
+      await checkoutServices.setPaymentMethod(paymentMethod.copyWith(isPreferred: true));
       emit(PreferredMade());
     } catch (e) {
       emit(PreferredMakingFailed(e.toString()));
     }
   }
 
-  // Lấy dữ liệu thanh toán ban đầu: địa chỉ, phương thức giao hàng, v.v.
   Future<void> getCheckoutData() async {
+    print('CheckoutCubit (Instance: $hashCode): getCheckoutData() Called');
     emit(CheckoutLoading());
-
     try {
-      final currentUser = authServices.currentUser;
-      final shippingAddresses = await checkoutServices.shippingAddresses(currentUser!.uid);
-      final deliveryMethods = await checkoutServices.deliveryMethods();
-
+      final user = authServices.currentUser;
+      final addresses = await checkoutServices.shippingAddresses(user!.uid);
+      final delivery = await checkoutServices.deliveryMethods();
       emit(CheckoutLoaded(
-        deliveryMethods: deliveryMethods,
-        selectedDeliveryMethod: state is CheckoutLoaded
-            ? (state as CheckoutLoaded).selectedDeliveryMethod
-            : null,
-        shippingAddress: shippingAddresses.isNotEmpty ? shippingAddresses.first : null,
+        deliveryMethods: delivery,
+        selectedDeliveryMethod: delivery.isNotEmpty ? delivery.first : null,
+        shippingAddress: addresses.isNotEmpty ? addresses.first : null,
         totalAmount: 0.0,
       ));
     } catch (e) {
@@ -110,58 +103,100 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     }
   }
 
-  // Lấy danh sách địa chỉ giao hàng
+  /// ✅ Load danh sách địa chỉ mà không làm mất `CheckoutLoaded`
   Future<void> getShippingAddresses() async {
+    final currentState = state;
     emit(FetchingAddresses());
-
     try {
-      final currentUser = authServices.currentUser;
-      final addresses = await checkoutServices.shippingAddresses(currentUser!.uid);
-
+      final user = authServices.currentUser;
+      final addresses = await checkoutServices.shippingAddresses(user!.uid);
       emit(AddressesFetched(addresses));
+
+      // Nếu đang là CheckoutLoaded thì giữ lại các dữ liệu cũ
+      if (currentState is CheckoutLoaded) {
+        emit(currentState.copyWith(
+          shippingAddress: addresses.isNotEmpty ? addresses.first : null,
+        ));
+      }
     } catch (e) {
       emit(AddressesFetchingFailed(e.toString()));
     }
   }
 
-  // Lưu địa chỉ mới
   Future<void> saveAddress(ShippingAddress address) async {
     emit(AddingAddress());
-
     try {
-      final currentUser = authServices.currentUser;
-      await checkoutServices.saveAddress(currentUser!.uid, address);
+      final user = authServices.currentUser;
+
+      if (address.isDefault) {
+        final existing = await checkoutServices.shippingAddresses(user!.uid);
+        for (var a in existing) {
+          if (a.id != address.id && a.isDefault) {
+            await checkoutServices.saveAddress(user.uid, a.copyWith(isDefault: false));
+          }
+        }
+      }
+      await checkoutServices.saveAddress(user!.uid, address);
+
       emit(AddressAdded());
+      final currentState = state;
+      if (currentState is CheckoutLoaded) {
+        final updatedAddresses = await checkoutServices.shippingAddresses(user.uid);
+        final updatedDefaultAddress = updatedAddresses.firstWhere(
+          (a) => a.isDefault,
+          orElse: () => updatedAddresses.isNotEmpty
+              ? updatedAddresses.first
+              : ShippingAddress(
+                  id: 'default-id',
+                  fullName: 'Unknown',
+                  country: 'Unknown',
+                  address: 'Unknown',
+                  city: 'Unknown',
+                  state: 'Unknown',
+                  zipCode: '00000',
+                  isDefault: false,
+                ),
+        );
+        emit(currentState.copyWith(
+          shippingAddress: updatedDefaultAddress,
+        ));
+      } else {
+        await getCheckoutData();
+      }
     } catch (e) {
       emit(AddressAddingFailed(e.toString()));
     }
   }
 
-  // Chọn phương thức giao hàng
-  void selectDeliveryMethod(DeliveryMethod method) {
+
+  void setSelectedAddress(ShippingAddress address) {
+    print('CheckoutCubit (Instance: $hashCode): setSelectedAddress() Called');
     final currentState = state;
 
     if (currentState is CheckoutLoaded) {
-      emit(CheckoutLoaded(
-        deliveryMethods: currentState.deliveryMethods,
-        shippingAddress: currentState.shippingAddress,
-        selectedDeliveryMethod: method,
-        totalAmount: currentState.totalAmount,
-      ));
+      emit(currentState.copyWith(shippingAddress: address));
+    } else {
+      print('Cannot set selected address: State is not CheckoutLoaded. Current state: $currentState');
     }
   }
 
-  // Cập nhật tổng tiền trong giỏ hàng
+  void selectDeliveryMethod(DeliveryMethod method) {
+    final currentState = state;
+    if (currentState is CheckoutLoaded) {
+      emit(currentState.copyWith(selectedDeliveryMethod: method));
+    }
+  }
+
   void updateCartTotalAmount(double newAmount) {
     final currentState = state;
-
     if (currentState is CheckoutLoaded) {
-      emit(CheckoutLoaded(
-        deliveryMethods: currentState.deliveryMethods,
-        selectedDeliveryMethod: currentState.selectedDeliveryMethod,
-        shippingAddress: currentState.shippingAddress,
-        totalAmount: newAmount,
-      ));
+      emit(currentState.copyWith(totalAmount: newAmount));
     }
+  }
+
+  @override
+  Future<void> close() {
+    print('--- CheckoutCubit Closing (Instance: $hashCode) ---');
+    return super.close();
   }
 }

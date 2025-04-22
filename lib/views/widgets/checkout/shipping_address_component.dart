@@ -3,10 +3,13 @@ import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
 import 'package:flutter_ecommerce/controllers/database_controller.dart';
 import 'package:flutter_ecommerce/models/shipping_address.dart';
 import 'package:flutter_ecommerce/utilities/routes.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_ecommerce/views/pages/checkout/shipping_addresses_page.dart';
 
 class ShippingAddressComponent extends StatelessWidget {
   final ShippingAddress shippingAddress;
   final CheckoutCubit checkoutCubit;
+
   const ShippingAddressComponent({
     super.key,
     required this.shippingAddress,
@@ -32,10 +35,27 @@ class ShippingAddressComponent extends StatelessWidget {
                       ),
                 ),
                 InkWell(
-                  onTap: () => Navigator.of(context).pushNamed(
-                    AppRoutes.shippingAddressesRoute,
-                    arguments: checkoutCubit,
-                  ),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => BlocProvider.value(
+                          value: checkoutCubit,
+                          child: const ShippingAddressesPage(),
+                        ),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          const begin = Offset(1.0, 0.0);
+                          const end = Offset.zero;
+                          const curve = Curves.ease;
+                          final tween = Tween(begin: begin, end: end)
+                              .chain(CurveTween(curve: curve));
+                          return SlideTransition(
+                            position: animation.drive(tween),
+                            child: child,
+                          );
+                        },
+                      ),
+                    );
+                  },
                   child: Text(
                     'Change',
                     style: Theme.of(context).textTheme.labelSmall!.copyWith(
