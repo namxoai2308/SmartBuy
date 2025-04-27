@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // <-- 1. Import flutter_bloc
+import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart'; // <-- 2. Import AuthCubit và State
+import 'package:flutter_ecommerce/controllers/home/home_cubit.dart'; // <-- 3. Import HomeCubit
 import 'package:flutter_ecommerce/utilities/routes.dart';
 
 class OrderSuccessPage extends StatelessWidget {
@@ -46,7 +49,7 @@ class OrderSuccessPage extends StatelessWidget {
               const Spacer(flex: 3),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE53935),
+                  backgroundColor: const Color(0xFFE53935), // Màu đỏ quen thuộc
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -55,6 +58,23 @@ class OrderSuccessPage extends StatelessWidget {
                   elevation: 2,
                 ),
                 onPressed: () {
+                  // --- Bắt đầu thay đổi ---
+                  // 4. Lấy các Cubits
+                  final homeCubit = context.read<HomeCubit>();
+                  final authCubit = context.read<AuthCubit>();
+
+                  // 5. Lấy userId từ AuthState
+                  String? userId;
+                  final authState = authCubit.state;
+                  if (authState is AuthSuccess) {
+                    userId = authState.user.uid;
+                    print("OrderSuccessPage: Refreshing recommendations for user: $userId");
+                  } else {
+                    print("OrderSuccessPage: User not logged in? Refreshing general recommendations.");
+                    userId = null;
+                  }
+                  homeCubit.refreshRecommendations(userId: userId);
+
                   Navigator.of(context).pushNamedAndRemoveUntil(
                     AppRoutes.bottomNavBarRoute,
                     (route) => false,

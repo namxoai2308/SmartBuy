@@ -91,6 +91,38 @@ class _HomePageState extends State<HomePage> {
 
                   const SizedBox(height: 30.0),
 
+                  // Suggested for You
+                  if (filteredRecommended.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        children: [
+                          HeaderOfList(
+                            onTap: () {},
+                            title: 'Suggested for You',
+                            description: 'Products you may like!',
+                          ),
+                          const SizedBox(height: 8.0),
+                          SizedBox(
+                            height: 330,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: filteredRecommended.length,
+                              itemBuilder: (_, int index) => Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: ListItemHome(
+                                  product: filteredRecommended[index],
+                                  isNew: false,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20.0),
+                        ],
+                      ),
+                    ),
+                  ],
+
                   // Danh sách Sale
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -117,33 +149,15 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         const SizedBox(height: 20.0),
+                      ],
+                    ),
+                  ),
 
-                        // Suggested for You
-                        if (filteredRecommended.isNotEmpty) ...[
-                          HeaderOfList(
-                            onTap: () {},
-                            title: 'Suggested for You',
-                            description: 'Products you may like!',
-                          ),
-                          const SizedBox(height: 8.0),
-                          SizedBox(
-                            height: 330,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: filteredRecommended.length,
-                              itemBuilder: (_, int index) => Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: ListItemHome(
-                                  product: filteredRecommended[index],
-                                  isNew: false,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20.0),
-                        ],
-
-                        // Danh sách New
+                  // Danh sách New
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Column(
+                      children: [
                         HeaderOfList(
                           onTap: () {},
                           title: 'New',

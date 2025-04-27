@@ -27,6 +27,7 @@ dependencies:
   equatable: ^2.0.5
   intl: ^0.18.1
   collection: ^1.17.0
+  shared_preferences: ^2.0.15
 
 dev_dependencies:
   change_app_package_name: ^1.1.0
@@ -39,3 +40,5 @@ flutter:
   assets:
     - assets/success_shopping.png
     - assets/products.json
+    - assets/facebook-svgrepo-com.svg
+    - assets/google-svgrepo-com.svg

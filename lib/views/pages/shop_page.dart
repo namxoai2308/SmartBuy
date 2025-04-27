@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
 import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
 import 'package:flutter_ecommerce/models/product.dart';
+import 'package:flutter_ecommerce/services/search_history_service.dart';
 import 'package:flutter_ecommerce/views/widgets/list_item_home.dart';
 
 class ShopPage extends StatefulWidget {
@@ -15,18 +17,43 @@ class _ShopPageState extends State<ShopPage> {
   bool isSearching = false;
   String searchQuery = '';
   final TextEditingController searchController = TextEditingController();
+  final SearchHistoryService _searchHistoryService = SearchHistoryService();
 
-  String selectedCategory = 'All'; // Lọc theo danh mục
-  bool sortAscending = true; // Điều chỉnh sắp xếp giá
+  String selectedCategory = 'All';
+  bool sortAscending = true;
+  final List<String> categories = ['All', 'Clothing', 'Shoes', 'Jewelry', 'electronics', 'furniture', 'others'];
 
-  // Danh sách các category giả định
-  List<String> categories = ['All', 'Clothing', 'Shoes', 'Jewelry'];
+  // Biến đếm số lượt tìm kiếm hợp lệ
+  int _searchActionCount = 0;
+  static const int _searchRefreshThreshold = 10; // Ngưỡng làm mới đề xuất
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  // Hàm lưu lịch sử tìm kiếm và kiểm tra ngưỡng
+  void _saveSearchQueryAndCheckRefresh() {
+    final trimmedQuery = searchQuery.trim();
+    if (trimmedQuery.isNotEmpty) {
+      _searchHistoryService.addSearchTerm(trimmedQuery);
+      _searchActionCount++;
+
+      if (_searchActionCount > 0 && _searchActionCount % _searchRefreshThreshold == 0) {
+        final authState = context.read<AuthCubit>().state;
+        String? userId = (authState is AuthSuccess) ? authState.user.uid : null;
+        context.read<HomeCubit>().refreshRecommendations(userId: userId);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 0,
         title: isSearching
@@ -34,47 +61,44 @@ class _ShopPageState extends State<ShopPage> {
                 controller: searchController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'Search...',
-                  prefixIcon: const Icon(Icons.search),
+                  hintText: 'Search products...',
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear),
+                    icon: const Icon(Icons.clear, color: Colors.grey),
                     onPressed: () {
                       setState(() {
                         searchQuery = '';
                         searchController.clear();
-                        isSearching = false;
                       });
                     },
                   ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
                 ),
                 onChanged: (value) {
                   setState(() {
                     searchQuery = value;
                   });
                 },
+                onSubmitted: (value) {
+                  _saveSearchQueryAndCheckRefresh();
+                  FocusScope.of(context).unfocus();
+                },
               )
-            : const Text(
-                '',
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
+            : null,
         actions: [
           IconButton(
             icon: Icon(
-              isSearching ? Icons.cancel : Icons.search,
+              isSearching ? Icons.close : Icons.search,
               color: Colors.black,
               size: 28,
             ),
             onPressed: () {
+              final previousSearchState = isSearching;
               setState(() {
                 isSearching = !isSearching;
-                if (!isSearching) {
+                if (!isSearching && previousSearchState) {
+                  _saveSearchQueryAndCheckRefresh();
                   searchQuery = '';
                   searchController.clear();
                 }
@@ -87,108 +111,89 @@ class _ShopPageState extends State<ShopPage> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Move "My Shop" text here
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              'My Shop',
-              style: TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+          if (!isSearching)
+            const Padding(
+              padding: EdgeInsets.only(left: 16.0, top: 0, bottom: 8),
+              child: Text(
+                'My Shop',
+                style: TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-
-          // Filters + Price
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.menu),
-                  onPressed: () {
-                    // Hiển thị danh sách danh mục khi người dùng nhấn vào menu
-                    showModalBottomSheet(
-                      context: context,
-                      builder: (context) {
-                        return ListView(
-                          children: categories.map((category) {
-                            return ListTile(
-                              title: Text(category),
-                              onTap: () {
-                                setState(() {
-                                  selectedCategory = category;
-                                });
-                                Navigator.pop(context);
-                              },
-                            );
-                          }).toList(),
-                        );
-                      },
-                    );
-                  },
+                  icon: const Icon(Icons.filter_list),
+                  onPressed: () {/* filter logic */},
+                  tooltip: 'Filter by category',
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'Filters: $selectedCategory',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    'Filters: $selectedCategory',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.swap_vert),
+                  icon: Icon(sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
                   onPressed: () {
                     setState(() {
                       sortAscending = !sortAscending;
                     });
                   },
+                  tooltip: 'Sort by price',
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Price: ${sortAscending ? 'lowest to high' : 'high to lowest'}',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  'Price: ${sortAscending ? 'Low to High' : 'High to Low'}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 8),
-
-          // Products Grid
           Expanded(
             child: BlocBuilder<HomeCubit, HomeState>(
               builder: (context, state) {
                 if (state is HomeLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator.adaptive());
                 } else if (state is HomeSuccess) {
                   final allProducts = state.allProducts;
+                  final filteredProducts = allProducts.where((product) {
+                    final titleMatch = (product.title ?? '').toLowerCase().contains(searchQuery.toLowerCase());
+                    final categoryMatch = selectedCategory == 'All' || product.category == selectedCategory;
+                    return titleMatch && categoryMatch;
+                  }).toList();
 
-                  // Lọc sản phẩm theo tìm kiếm
-                  final filteredProducts = allProducts
-                      .where((product) => product.title
-                          .toLowerCase()
-                          .contains(searchQuery.toLowerCase()) &&
-                          (selectedCategory == 'All' ||
-                              product.category == selectedCategory))
-                      .toList();
-
-                  // Sắp xếp sản phẩm theo giá
                   filteredProducts.sort((a, b) {
                     final priceA = a.price ?? 0.0;
                     final priceB = b.price ?? 0.0;
-                    return sortAscending
-                        ? priceA.compareTo(priceB)
-                        : priceB.compareTo(priceA);
+                    return sortAscending ? priceA.compareTo(priceB) : priceB.compareTo(priceA);
                   });
 
                   if (filteredProducts.isEmpty) {
-                    return const Center(child: Text('No products available'));
+                    return Center(
+                      child: Text(
+                        searchQuery.isNotEmpty || selectedCategory != 'All'
+                            ? 'No products match your criteria.'
+                            : 'No products available in this shop yet.',
+                        style: TextStyle(color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
                   }
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: GridView.builder(
-                      padding: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.only(top: 8, bottom: 16),
                       itemCount: filteredProducts.length,
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
@@ -198,25 +203,18 @@ class _ShopPageState extends State<ShopPage> {
                       ),
                       itemBuilder: (context, index) {
                         final product = filteredProducts[index];
-                        return Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: ListItemHome(
-                            product: product,
-                            isNew: false,
-                            addToFavorites: () {
-                              // logic yêu thích
-                            },
-                          ),
+                        return ListItemHome(
+                          product: product,
+                          isNew: true,
                         );
                       },
                     ),
                   );
                 } else if (state is HomeFailed) {
-                  return Center(child: Text('Error: ${state.error}'));
+                  final errorMessage = state.toString();
+                  return Center(child: Text('Error loading products: $errorMessage'));
                 } else {
-                  return const SizedBox.shrink();
+                  return const Center(child: Text("Loading shop data..."));
                 }
               },
             ),

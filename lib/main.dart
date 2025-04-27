@@ -1,16 +1,15 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // thêm để sử dụng FirebaseAuth
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
-import 'package:flutter_ecommerce/services/auth.dart';
+import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
+import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
 import 'package:flutter_ecommerce/utilities/constants.dart';
 import 'package:flutter_ecommerce/utilities/router.dart';
-import 'package:flutter_ecommerce/utilities/routes.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:flutter_ecommerce/views/pages/splash_screen.dart';
+import 'package:flutter_ecommerce/services/search_history_service.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
-
 
 Future<void> main() async {
   await initSetup();
@@ -20,8 +19,6 @@ Future<void> main() async {
 Future<void> initSetup() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  await FirebaseAuth.instance.setSettings(appVerificationDisabledForTesting: true);
-
   Stripe.publishableKey = AppConstants.publishableKey;
 }
 
@@ -32,70 +29,77 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+      Provider<SearchHistoryService>(
+                create: (_) => SearchHistoryService(),
+              ),
         BlocProvider<AuthCubit>(
-          create: (context) {
-            final cubit = AuthCubit();
-            cubit.authStatus();
-            return cubit;
-          },
+          create: (context) => AuthCubit()..authStatus(),
         ),
         BlocProvider<CartCubit>(
           create: (context) => CartCubit()..getCartItems(),
         ),
-
+        BlocProvider<HomeCubit>(
+          create: (context) => HomeCubit(),
+        ),
       ],
-      child: Builder(
-        builder: (context) {
-          return BlocBuilder<AuthCubit, AuthState>(
-            bloc: BlocProvider.of<AuthCubit>(context),
-            buildWhen: (previous, current) =>
-                current is AuthSuccess || current is AuthInitial,
-            builder: (context, state) {
-              return MaterialApp(
-                debugShowCheckedModeBanner: false,
-                title: 'Ecommerce App',
-                theme: ThemeData(
-                  scaffoldBackgroundColor: const Color(0xFFE5E5E5),
-                  primaryColor: Colors.red,
-                  appBarTheme: const AppBarTheme(
-                    backgroundColor: Colors.white,
-                    elevation: 2,
-                    iconTheme: IconThemeData(color: Colors.black),
-                  ),
-                  inputDecorationTheme: InputDecorationTheme(
-                    labelStyle: Theme.of(context).textTheme.labelMedium,
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                      borderSide: const BorderSide(color: Colors.grey),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                      borderSide: const BorderSide(color: Colors.red),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                      borderSide: const BorderSide(color: Colors.red),
-                    ),
-                  ),
-                ),
-                onGenerateRoute: onGenerate,
-                initialRoute: state is AuthSuccess
-                    ? AppRoutes.bottomNavBarRoute
-                    : AppRoutes.loginPageRoute,
-              );
-            },
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Ecommerce App',
+        theme: ThemeData(
+          scaffoldBackgroundColor: const Color(0xFFE5E5E5),
+          primaryColor: Colors.red,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Colors.white,
+            elevation: 1,
+            iconTheme: IconThemeData(color: Colors.black),
+            titleTextStyle: TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            labelStyle: Theme.of(context).textTheme.bodyMedium,
+            border: OutlineInputBorder(
+               borderRadius: BorderRadius.circular(8.0),
+               borderSide: const BorderSide(color: Colors.grey),
+             ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.0),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
+             focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.0),
+              borderSide: BorderSide(color: Colors.red.shade700),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.0),
+              borderSide: const BorderSide(color: Colors.red),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8.0),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+          ),
+        ),
+        home: const SplashScreen(),
+        onGenerateRoute: onGenerate,
+        builder: (context, child) {
+          return BlocListener<AuthCubit, AuthState>(
+              listener: (context, state) {
+                final homeCubit = context.read<HomeCubit>();
+                if (state is AuthSuccess) {
+                  homeCubit.refreshRecommendations(userId: state.user.uid);
+                } else if (state is AuthInitial) {
+                  homeCubit.refreshRecommendations(userId: null);
+                }
+              },
+              listenWhen: (previous, current) =>
+                  previous.runtimeType != current.runtimeType && previous is! AuthLoading,
+              child: child!,
           );
         },
       ),
     );
   }
 }
-

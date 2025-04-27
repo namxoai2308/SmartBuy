@@ -20,7 +20,6 @@ class StripeServices {
       );
       await Stripe.instance.presentPaymentSheet();
     } catch (e) {
-      debugPrint('Make Payment: ${e.toString()}');
       rethrow;
     }
   }
@@ -46,11 +45,9 @@ class StripeServices {
         ),
       );
       if (response.data != null) {
-        debugPrint(response.data.toString());
         return response.data['client_secret'];
       }
     } catch (e) {
-      debugPrint('Create Payment Intent: ${e.toString()}');
       rethrow;
     }
     return null;

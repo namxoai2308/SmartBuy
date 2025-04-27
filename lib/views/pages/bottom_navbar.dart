@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
-import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
 import 'package:flutter_ecommerce/views/pages/cart_page.dart';
 import 'package:flutter_ecommerce/views/pages/home_page.dart';
@@ -22,38 +21,25 @@ class BottomNavbar extends StatefulWidget {
 class _BottomNavbarState extends State<BottomNavbar> {
   final _bottomNavbarController = PersistentTabController();
 
-  List<Widget> _buildScreens() {
-    final homeCubit = HomeCubit();
-    homeCubit.getHomeContent();
-
-    return [
-      BlocProvider<HomeCubit>.value(
-        value: homeCubit,
-        child: const HomePage(),
-      ),
-      BlocProvider<HomeCubit>.value(
-        value: homeCubit,
-        child: const ShopPage(),
-      ),
-      const CartPage(),
-      ChatbotWrapper(uid: 'your-uid'),
-      BlocProvider(
-        create: (_) => CheckoutCubit()..getCheckoutData(),
-        child: const ProfilePage(),
-      ),
-    ];
-  }
+  final List<Widget> _screens = [
+    const HomePage(),
+    const ShopPage(),
+    const CartPage(),
+    ChatbotWrapper(uid: 'your-uid'),
+    BlocProvider(
+      create: (_) => CheckoutCubit()..getCheckoutData(),
+      child: const ProfilePage(),
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final screens = _buildScreens();
-
     return Scaffold(
       body: PersistentTabView(
         controller: _bottomNavbarController,
         tabs: [
           PersistentTabConfig(
-            screen: screens[0],
+            screen: _screens[0],
             item: ItemConfig(
               icon: const Icon(CupertinoIcons.home),
               title: ("Home"),
@@ -61,7 +47,7 @@ class _BottomNavbarState extends State<BottomNavbar> {
             ),
           ),
           PersistentTabConfig(
-            screen: screens[1],
+            screen: _screens[1],
             item: ItemConfig(
               icon: const Icon(CupertinoIcons.bag),
               title: ("Shop"),
@@ -69,7 +55,7 @@ class _BottomNavbarState extends State<BottomNavbar> {
             ),
           ),
           PersistentTabConfig(
-            screen: screens[2],
+            screen: _screens[2],
             item: ItemConfig(
               icon: const Icon(CupertinoIcons.shopping_cart),
               title: ("Cart"),
@@ -77,7 +63,7 @@ class _BottomNavbarState extends State<BottomNavbar> {
             ),
           ),
           PersistentTabConfig(
-            screen: screens[3],
+            screen: _screens[3],
             item: ItemConfig(
               icon: const Icon(Icons.smart_toy),
               title: ("Chatbot"),
@@ -85,7 +71,7 @@ class _BottomNavbarState extends State<BottomNavbar> {
             ),
           ),
           PersistentTabConfig(
-            screen: screens[4],
+            screen: _screens[4],
             item: ItemConfig(
               icon: const Icon(CupertinoIcons.profile_circled),
               title: ("Profile"),
