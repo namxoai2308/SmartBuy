@@ -8,6 +8,8 @@ class OrderItemModel extends Equatable {
   final String imgUrl;
   final String? color;
   final String? size;
+  final String? brand;
+  final String? category;
 
   const OrderItemModel({
     required this.productId,
@@ -15,6 +17,8 @@ class OrderItemModel extends Equatable {
     required this.price,
     required this.quantity,
     required this.imgUrl,
+    required this.brand,
+    required this.category,
     this.color,
     this.size,
   });
@@ -28,6 +32,8 @@ class OrderItemModel extends Equatable {
       imgUrl: map['imgUrl'] as String? ?? '',
       color: map['color'] as String?,
       size: map['size'] as String?,
+      brand: map['brand'] as String?,
+      category: map['category'] as String?,
     );
   }
 
@@ -40,9 +46,11 @@ class OrderItemModel extends Equatable {
       'imgUrl': imgUrl,
       'color': color,
       'size': size,
+      'brand': brand,
+      'category' : category,
     };
   }
 
   @override
-  List<Object?> get props => [productId, title, price, quantity, imgUrl, color, size];
+  List<Object?> get props => [productId, title, price, quantity, imgUrl, color, size, brand, category];
 }

@@ -1,36 +1,38 @@
 part of 'product_details_cubit.dart';
 
 @immutable
-sealed class ProductDetailsState {}
+abstract class ProductDetailsState {}
 
-final class ProductDetailsInitial extends ProductDetailsState {}
+class ProductDetailsInitial extends ProductDetailsState {}
 
-final class ProductDetailsLoading extends ProductDetailsState {}
+class ProductDetailsLoading extends ProductDetailsState {}
 
-final class ProductDetailsLoaded extends ProductDetailsState {
-  final Product product;
-
-  ProductDetailsLoaded(this.product);
-}
-
-final class ProductDetailsError extends ProductDetailsState {
+class ProductDetailsError extends ProductDetailsState {
   final String error;
-
   ProductDetailsError(this.error);
 }
 
-final class AddingToCart extends ProductDetailsState {}
+class ProductDetailsLoaded extends ProductDetailsState {
+  final Product product;
 
-final class AddedToCart extends ProductDetailsState {}
+  ProductDetailsLoaded({required this.product});
+}
 
-final class AddToCartError extends ProductDetailsState {
+class AddingToCart extends ProductDetailsState {}
+
+class AddedToCart extends ProductDetailsState {}
+
+class AddToCartError extends ProductDetailsState {
   final String error;
-
   AddToCartError(this.error);
 }
 
-final class SizeSelected extends ProductDetailsState {
+class SizeSelected extends ProductDetailsState {
   final String size;
-
   SizeSelected(this.size);
+}
+
+class ColorSelected extends ProductDetailsState {
+  final String color;
+  ColorSelected(this.color);
 }

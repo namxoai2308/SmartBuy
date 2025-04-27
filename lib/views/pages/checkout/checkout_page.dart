@@ -240,6 +240,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                             imgUrl: cartItem.imgUrl,
                                             color: cartItem.color,
                                             size: cartItem.size,
+                                            brand: cartItem.brand,
+                                            category: cartItem.category,
                                           ))
                                       .toList();
 

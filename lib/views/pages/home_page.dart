@@ -38,12 +38,16 @@ class _HomePageState extends State<HomePage> {
           } else if (state is HomeSuccess) {
             final salesProducts = state.salesProducts;
             final newProducts = state.newProducts;
+            final recommendedProducts = state.recommendedProducts;
 
             // Áp dụng tìm kiếm nếu có query
             final filteredSales = salesProducts
                 .where((p) => p.title.toLowerCase().contains(searchQuery.toLowerCase()))
                 .toList();
             final filteredNew = newProducts
+                .where((p) => p.title.toLowerCase().contains(searchQuery.toLowerCase()))
+                .toList();
+            final filteredRecommended = recommendedProducts
                 .where((p) => p.title.toLowerCase().contains(searchQuery.toLowerCase()))
                 .toList();
 
@@ -85,64 +89,7 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
 
-                  const SizedBox(height: 12),
-
-                  // 🔍 Thanh tìm kiếm (ẩn hiện)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                    child: Row(
-                      children: [
-                        if (isSearching)
-                          Expanded(
-                            child: TextField(
-                              controller: searchController,
-                              autofocus: true,
-                              decoration: InputDecoration(
-                                hintText: 'Search...',
-                                prefixIcon: const Icon(Icons.search),
-                                suffixIcon: IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    setState(() {
-                                      searchQuery = '';
-                                      searchController.clear();
-                                      isSearching = false;
-                                    });
-                                  },
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12.0),
-                                ),
-                              ),
-                              onChanged: (value) {
-                                setState(() {
-                                  searchQuery = value;
-                                });
-                              },
-                            ),
-                          )
-                        else
-                          Expanded(
-                            child: Text(
-                              '',
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                          ),
-                        const SizedBox(width: 12),
-                        if (!isSearching)
-                          IconButton(
-                            icon: const Icon(Icons.search),
-                            onPressed: () {
-                              setState(() {
-                                isSearching = true;
-                              });
-                            },
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24.0),
+                  const SizedBox(height: 30.0),
 
                   // Danh sách Sale
                   Padding(
@@ -164,12 +111,37 @@ class _HomePageState extends State<HomePage> {
                               padding: const EdgeInsets.all(8.0),
                               child: ListItemHome(
                                 product: filteredSales[index],
-                                isNew: true,
+                                isNew: false,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12.0),
+                        const SizedBox(height: 20.0),
+
+                        // Suggested for You
+                        if (filteredRecommended.isNotEmpty) ...[
+                          HeaderOfList(
+                            onTap: () {},
+                            title: 'Suggested for You',
+                            description: 'Products you may like!',
+                          ),
+                          const SizedBox(height: 8.0),
+                          SizedBox(
+                            height: 330,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: filteredRecommended.length,
+                              itemBuilder: (_, int index) => Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: ListItemHome(
+                                  product: filteredRecommended[index],
+                                  isNew: false,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20.0),
+                        ],
 
                         // Danh sách New
                         HeaderOfList(

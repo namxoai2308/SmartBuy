@@ -7,6 +7,7 @@ import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
 import 'package:flutter_ecommerce/views/pages/cart_page.dart';
 import 'package:flutter_ecommerce/views/pages/home_page.dart';
 import 'package:flutter_ecommerce/views/pages/profile/profle_page.dart';
+import 'package:flutter_ecommerce/views/pages/shop_page.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 import 'chatbot_page.dart';
 import 'chatbot_wrapper.dart';
@@ -22,16 +23,18 @@ class _BottomNavbarState extends State<BottomNavbar> {
   final _bottomNavbarController = PersistentTabController();
 
   List<Widget> _buildScreens() {
+    final homeCubit = HomeCubit();
+    homeCubit.getHomeContent();
+
     return [
-      BlocProvider(
-        create: (context) {
-          final cubit = HomeCubit();
-          cubit.getHomeContent();
-          return cubit;
-        },
+      BlocProvider<HomeCubit>.value(
+        value: homeCubit,
         child: const HomePage(),
       ),
-      Container(),
+      BlocProvider<HomeCubit>.value(
+        value: homeCubit,
+        child: const ShopPage(),
+      ),
       const CartPage(),
       ChatbotWrapper(uid: 'your-uid'),
       BlocProvider(

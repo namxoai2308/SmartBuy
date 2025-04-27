@@ -84,8 +84,8 @@ class ListItemHome extends StatelessWidget {
 
           // Favorite (heart) icon button
           Positioned(
-            left: size.width * 0.38,
-            bottom: size.height * 0.12,
+            left: size.width * 0.35,
+            bottom: size.height * 0.11,
             child: Container(
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
@@ -141,18 +141,16 @@ class ListItemHome extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6.0),
-
-                  // Category
-                  Text(
-                    product.category,
-                    style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                          color: Colors.grey,
-                        ),
-                  ),
 
                   const SizedBox(height: 6.0),
-
+// Brand
+                  if (product.brand != null)
+                    Text(
+                      '${product.brand!}',
+                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                            color: Colors.grey,
+                          ),
+                    ),
                   // Title
                   Text(
                     product.title,
@@ -163,25 +161,7 @@ class ListItemHome extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
 
-                  // Description (short preview)
-                  if (product.description != null)
-                    Text(
-                      product.description!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                            color: Colors.black54,
-                          ),
-                    ),
 
-                  // Brand
-                  if (product.brand != null)
-                    Text(
-                      'Brand: ${product.brand!}',
-                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                            color: Colors.black87,
-                          ),
-                    ),
 
                   // In stock status
                   if (product.inStock != null)

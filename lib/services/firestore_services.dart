@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_ecommerce/models/product.dart'; // Thêm dòng này
+import 'package:flutter_ecommerce/models/product.dart';
 
 class FirestoreServices {
   FirestoreServices._();

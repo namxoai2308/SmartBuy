@@ -10,6 +10,8 @@ class AddToCartModel extends Equatable {
   final int discountValue;
   final String color;
   final String size;
+  final String brand;
+  final String category;
 
   const AddToCartModel({
     required this.id,
@@ -19,8 +21,10 @@ class AddToCartModel extends Equatable {
     this.quantity = 1,
     required this.imgUrl,
     this.discountValue = 0,
-    this.color = 'Black',
+    required this.color,
     required this.size,
+    required this.brand,
+    required this.category,
   });
 
   AddToCartModel copyWith({
@@ -33,6 +37,8 @@ class AddToCartModel extends Equatable {
     int? discountValue,
     String? color,
     String? size,
+    String? brand,
+    String? category,
   }) {
     return AddToCartModel(
       id: id ?? this.id,
@@ -44,6 +50,8 @@ class AddToCartModel extends Equatable {
       discountValue: discountValue ?? this.discountValue,
       color: color ?? this.color,
       size: size ?? this.size,
+      brand: brand ?? this.brand,
+      category: category ?? this.category,
     );
   }
 
@@ -58,6 +66,8 @@ class AddToCartModel extends Equatable {
       'discountValue': discountValue,
       'color': color,
       'size': size,
+      'brand' : brand,
+      'category': category,
     };
   }
 
@@ -70,8 +80,10 @@ class AddToCartModel extends Equatable {
       quantity: map['quantity']?.toInt() ?? 0,
       imgUrl: map['imgUrl'] ?? '',
       discountValue: map['discountValue']?.toInt() ?? 0,
-      color: map['color'] ?? 'Black',
+      color: map['color'] ?? '',
       size: map['size'] ?? '',
+      brand: map['brand'] ?? '',
+      category: map['category'] ?? '',
     );
   }
 
@@ -85,6 +97,8 @@ class AddToCartModel extends Equatable {
         discountValue: 0,
         color: '',
         size: '',
+        brand: '',
+        category: '',
       );
 
   bool get isEmpty => id.isEmpty;
@@ -100,5 +114,7 @@ class AddToCartModel extends Equatable {
         discountValue,
         color,
         size,
+        brand,
+        category,
       ];
 }

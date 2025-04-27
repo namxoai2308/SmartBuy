@@ -5,7 +5,7 @@ class Review {
   final String userId;
   final String userName;
   final String comment;
-  final int rating; // 1 đến 5 sao
+  final int rating;
   final DateTime createdAt;
 
   Review({

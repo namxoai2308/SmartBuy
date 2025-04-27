@@ -9,8 +9,6 @@ class Product {
   final String category;
   final int? rate;
   final List<Review> reviews;
-
-  // New fields for more detailed product info
   final String? description;
   final String? brand;
   final bool? inStock;
@@ -29,17 +27,14 @@ class Product {
     this.inStock,
   });
 
-  /// Calculate average rating from reviews
   double get averageRating {
     if (reviews.isEmpty) return 0;
     double total = reviews.fold(0, (sum, r) => sum + r.rating);
     return total / reviews.length;
   }
 
-  /// Count total number of reviews
   int get reviewCount => reviews.length;
 
-  /// Convert Product to Map (for Firestore or serialization)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -58,7 +53,6 @@ class Product {
     };
   }
 
-  /// Create Product from Map (e.g., from Firestore)
   factory Product.fromMap(Map<String, dynamic> map, String id) {
     final reviewsMap = map['reviews'] as Map<String, dynamic>?;
 
