@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
 import 'package:flutter_ecommerce/utilities/assets.dart';
-import 'package:flutter_ecommerce/views/widgets/header_of_list.dart';
-import 'package:flutter_ecommerce/views/widgets/list_item_home.dart';
+import 'package:flutter_ecommerce/views/widgets/home/header_of_list.dart';
+import 'package:flutter_ecommerce/views/widgets/home/list_item_home.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter_ecommerce/views/widgets/home/banner.dart';
+import 'package:flutter_ecommerce/views/pages/home/product_list_screen.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -11,6 +15,29 @@ class HomePage extends StatefulWidget {
   @override
   State<HomePage> createState() => _HomePageState();
 }
+
+void navigateWithSlide(BuildContext context, Widget page) {
+  Navigator.push(
+    context,
+    PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(1.0, 0.0);
+        const end = Offset.zero;
+        const curve = Curves.ease;
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var offsetAnimation = animation.drive(tween);
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+      transitionDuration: const Duration(milliseconds: 300),
+    ),
+  );
+}
+
 
 class _HomePageState extends State<HomePage> {
   bool isSearching = false;
@@ -56,39 +83,7 @@ class _HomePageState extends State<HomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Banner
-                  Stack(
-                    alignment: Alignment.bottomLeft,
-                    children: [
-                      Image.network(
-                        AppAssets.topBannerHomePageAsset,
-                        width: double.infinity,
-                        height: size.height * 0.3,
-                        fit: BoxFit.cover,
-                      ),
-                      Opacity(
-                        opacity: 0.3,
-                        child: Container(
-                          width: double.infinity,
-                          height: size.height * 0.3,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24.0,
-                          vertical: 16.0,
-                        ),
-                        child: Text(
-                          'Street Clothes',
-                          style: Theme.of(context).textTheme.titleLarge!.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-
+                  const BannerSlider(),
                   const SizedBox(height: 30.0),
 
                   // Suggested for You
@@ -98,7 +93,15 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         children: [
                           HeaderOfList(
-                            onTap: () {},
+                            onTap: () {
+                              navigateWithSlide(
+                                    context,
+                                    ProductListScreen(
+                                      title: 'Suggested for You',
+                                      products: filteredRecommended,
+                                    ),
+                                  );
+                            },
                             title: 'Suggested for You',
                             description: 'Products you may like!',
                           ),
@@ -112,7 +115,7 @@ class _HomePageState extends State<HomePage> {
                                 padding: const EdgeInsets.all(8.0),
                                 child: ListItemHome(
                                   product: filteredRecommended[index],
-                                  isNew: false,
+                                  isNew: true,
                                 ),
                               ),
                             ),
@@ -129,10 +132,19 @@ class _HomePageState extends State<HomePage> {
                     child: Column(
                       children: [
                         HeaderOfList(
-                          onTap: () {},
+                          onTap: () {
+                            navigateWithSlide(
+                              context,
+                              ProductListScreen(
+                                title: 'Sale',
+                                products: filteredSales,
+                              ),
+                            );
+                          },
                           title: 'Sale',
                           description: 'Super Summer Sale!!',
                         ),
+
                         const SizedBox(height: 8.0),
                         SizedBox(
                           height: 330,
@@ -159,10 +171,19 @@ class _HomePageState extends State<HomePage> {
                     child: Column(
                       children: [
                         HeaderOfList(
-                          onTap: () {},
+                          onTap: () {
+                            navigateWithSlide(
+                              context,
+                              ProductListScreen(
+                                title: 'New',
+                                products: filteredNew,
+                              ),
+                            );
+                          },
                           title: 'New',
                           description: 'Super New Products!!',
                         ),
+
                         const SizedBox(height: 8.0),
                         SizedBox(
                           height: 330,

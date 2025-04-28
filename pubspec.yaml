@@ -28,6 +28,7 @@ dependencies:
   intl: ^0.18.1
   collection: ^1.17.0
   shared_preferences: ^2.0.15
+  carousel_slider: ^5.0.0
 
 dev_dependencies:
   change_app_package_name: ^1.1.0

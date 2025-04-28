@@ -4,7 +4,11 @@ import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
 import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
 import 'package:flutter_ecommerce/models/product.dart';
 import 'package:flutter_ecommerce/services/search_history_service.dart';
-import 'package:flutter_ecommerce/views/widgets/list_item_home.dart';
+import 'package:flutter_ecommerce/views/widgets/home/list_item_home.dart';
+import 'package:flutter_ecommerce/services/product_filter_service.dart';
+
+
+enum SortOption { popular, newest, customerReview, priceLowToHigh, priceHighToLow }
 
 class ShopPage extends StatefulWidget {
   const ShopPage({Key? key}) : super(key: key);
@@ -20,12 +24,11 @@ class _ShopPageState extends State<ShopPage> {
   final SearchHistoryService _searchHistoryService = SearchHistoryService();
 
   String selectedCategory = 'All';
-  bool sortAscending = true;
+  SortOption selectedSortOption = SortOption.priceLowToHigh;
   final List<String> categories = ['All', 'Clothing', 'Shoes', 'Jewelry', 'electronics', 'furniture', 'others'];
 
-  // Biến đếm số lượt tìm kiếm hợp lệ
   int _searchActionCount = 0;
-  static const int _searchRefreshThreshold = 10; // Ngưỡng làm mới đề xuất
+  static const int _searchRefreshThreshold = 10;
 
   @override
   void dispose() {
@@ -33,7 +36,6 @@ class _ShopPageState extends State<ShopPage> {
     super.dispose();
   }
 
-  // Hàm lưu lịch sử tìm kiếm và kiểm tra ngưỡng
   void _saveSearchQueryAndCheckRefresh() {
     final trimmedQuery = searchQuery.trim();
     if (trimmedQuery.isNotEmpty) {
@@ -45,6 +47,45 @@ class _ShopPageState extends State<ShopPage> {
         String? userId = (authState is AuthSuccess) ? authState.user.uid : null;
         context.read<HomeCubit>().refreshRecommendations(userId: userId);
       }
+    }
+  }
+
+  void _showSortOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: SortOption.values.map((option) {
+              return ListTile(
+                title: Text(_getSortOptionText(option)),
+                onTap: () {
+                  setState(() {
+                    selectedSortOption = option;
+                  });
+                  Navigator.pop(context);
+                },
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  String _getSortOptionText(SortOption option) {
+    switch (option) {
+      case SortOption.popular:
+        return 'Popular';
+      case SortOption.newest:
+        return 'Newest';
+      case SortOption.customerReview:
+        return 'Customer review';
+      case SortOption.priceLowToHigh:
+        return 'Price: lowest to high';
+      case SortOption.priceHighToLow:
+        return 'Price: highest to low';
     }
   }
 
@@ -129,7 +170,7 @@ class _ShopPageState extends State<ShopPage> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.filter_list),
-                  onPressed: () {/* filter logic */},
+                  onPressed: () {/* TODO: Filter logic */},
                   tooltip: 'Filter by category',
                 ),
                 const SizedBox(width: 8),
@@ -142,17 +183,15 @@ class _ShopPageState extends State<ShopPage> {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: Icon(sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
+                  icon: const Icon(Icons.sort),
                   onPressed: () {
-                    setState(() {
-                      sortAscending = !sortAscending;
-                    });
+                    _showSortOptions(context);
                   },
-                  tooltip: 'Sort by price',
+                  tooltip: 'Sort options',
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Price: ${sortAscending ? 'Low to High' : 'High to Low'}',
+                  _getSortOptionText(selectedSortOption),
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ],
@@ -165,18 +204,12 @@ class _ShopPageState extends State<ShopPage> {
                 if (state is HomeLoading) {
                   return const Center(child: CircularProgressIndicator.adaptive());
                 } else if (state is HomeSuccess) {
-                  final allProducts = state.allProducts;
-                  final filteredProducts = allProducts.where((product) {
-                    final titleMatch = (product.title ?? '').toLowerCase().contains(searchQuery.toLowerCase());
-                    final categoryMatch = selectedCategory == 'All' || product.category == selectedCategory;
-                    return titleMatch && categoryMatch;
-                  }).toList();
-
-                  filteredProducts.sort((a, b) {
-                    final priceA = a.price ?? 0.0;
-                    final priceB = b.price ?? 0.0;
-                    return sortAscending ? priceA.compareTo(priceB) : priceB.compareTo(priceA);
-                  });
+                  final filteredProducts = ProductFilterService.filterAndSortProducts(
+                    products: state.allProducts,
+                    searchQuery: searchQuery,
+                    selectedCategory: selectedCategory,
+                    selectedSortOption: selectedSortOption,
+                  );
 
                   if (filteredProducts.isEmpty) {
                     return Center(
@@ -198,8 +231,8 @@ class _ShopPageState extends State<ShopPage> {
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         crossAxisSpacing: 16,
-                        mainAxisSpacing: 24,
-                        childAspectRatio: 0.58,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 0.63,
                       ),
                       itemBuilder: (context, index) {
                         final product = filteredProducts[index];
