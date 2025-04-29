@@ -4,6 +4,9 @@ import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
 import 'package:flutter_ecommerce/utilities/routes.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
+import 'package:flutter_ecommerce/models/user_model.dart';
+import 'package:flutter_ecommerce/services/search_history_service.dart';
+
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -17,7 +20,7 @@ class ProfilePage extends StatelessWidget {
     String email = 'Loading...';
 
     if (authState is AuthSuccess) {
-      userName = authState.user.displayName ?? 'No Name Set';
+      userName = authState.user.name ?? 'No Name Set';
       email = authState.user.email ?? 'No Email Provided';
     }
 
@@ -138,7 +141,16 @@ class ProfilePage extends StatelessWidget {
                     context,
                     title: "Settings",
                     subtitle: "Notifications, password, etc.",
-                    onTap: () {},
+                    onTap: () async {
+                      final searchHistoryService = SearchHistoryService();
+                      await searchHistoryService.clearSearchHistory();
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Search history cleared.")),
+                        );
+                      }
+                    },
                   ),
                   const SizedBox(height: 30),
                   Padding(

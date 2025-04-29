@@ -2,7 +2,7 @@ import 'package:flutter_ecommerce/models/add_to_cart_model.dart';
 import 'package:flutter_ecommerce/models/delivery_method.dart';
 import 'package:flutter_ecommerce/models/product.dart';
 import 'package:flutter_ecommerce/models/shipping_address.dart';
-import 'package:flutter_ecommerce/models/user_data.dart';
+import 'package:flutter_ecommerce/models/user_model.dart';
 import 'package:flutter_ecommerce/services/firestore_services.dart';
 import 'package:flutter_ecommerce/utilities/api_path.dart';
 
@@ -13,7 +13,7 @@ abstract class Database {
   Stream<List<DeliveryMethod>> deliveryMethodsStream();
   Stream<List<ShippingAddress>> getShippingAddresses();
 
-  Future<void> setUserData(UserData userData);
+  Future<void> setUserData(UserModel user);
   Future<void> addToCart(AddToCartModel product);
   Future<void> saveAddress(ShippingAddress address);
 }
@@ -38,9 +38,9 @@ class FirestoreDatabase implements Database {
       );
 
   @override
-  Future<void> setUserData(UserData userData) async => await _service.setData(
-        path: ApiPath.user(userData.uid),
-        data: userData.toMap(),
+  Future<void> setUserData(UserModel user) async => await _service.setData(
+        path: ApiPath.user(user.uid),
+        data: user.toFirestore(),
       );
 
   @override

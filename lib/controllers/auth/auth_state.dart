@@ -17,12 +17,9 @@ final class AuthLoading extends AuthState {
 }
 
 final class AuthSuccess extends AuthState {
-  final User user;
-
+  final UserModel user;
   const AuthSuccess(this.user);
-
-  @override
-  List<Object?> get props => [user];
+  @override List<Object?> get props => [user];
 }
 
 final class AuthFailed extends AuthState {
@@ -39,4 +36,8 @@ final class ToggleFormType extends AuthState {
 
   @override
   List<Object?> get props => [authFormType];
+}
+
+final class AuthSignUpSuccess extends AuthState {
+  const AuthSignUpSuccess();
 }

@@ -2,14 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_ecommerce/models/delivery_method.dart';
 import 'package:flutter_ecommerce/models/payment_method.dart';
 import 'package:flutter_ecommerce/models/shipping_address.dart';
-import 'package:flutter_ecommerce/services/auth.dart';
+import 'package:flutter_ecommerce/services/auth_services.dart';
 import 'package:flutter_ecommerce/services/firestore_services.dart';
 import 'package:flutter_ecommerce/utilities/api_path.dart';
 
 abstract class CheckoutServices {
   Future<void> setPaymentMethod(PaymentMethod paymentMethod);
   Future<void> deletePaymentMethod(PaymentMethod paymentMethod);
-  Future<List<PaymentMethod>> paymentMethods();
+  Future<List<PaymentMethod>> paymentMethods([bool fetchPreferred = false]);
   Future<List<ShippingAddress>> shippingAddresses(String userId);
   Future<List<DeliveryMethod>> deliveryMethods();
   Future<void> saveAddress(String userId, ShippingAddress address);
@@ -17,14 +17,18 @@ abstract class CheckoutServices {
 
 class CheckoutServicesImpl implements CheckoutServices {
   final firestoreServices = FirestoreServices.instance;
-  final authServices = Auth();
+  final authServices = AuthServicesImpl();  // Use AuthServices instead of Auth
 
   @override
   Future<void> setPaymentMethod(PaymentMethod paymentMethod) async {
     final currentUser = authServices.currentUser;
 
+    if (currentUser == null) {
+      throw Exception('No current user logged in');
+    }
+
     await firestoreServices.setData(
-      path: ApiPath.addCard(currentUser!.uid, paymentMethod.id),
+      path: ApiPath.addCard(currentUser.uid, paymentMethod.id),
       data: paymentMethod.toMap(),
     );
   }
@@ -33,18 +37,25 @@ class CheckoutServicesImpl implements CheckoutServices {
   Future<void> deletePaymentMethod(PaymentMethod paymentMethod) async {
     final currentUser = authServices.currentUser;
 
+    if (currentUser == null) {
+      throw Exception('No current user logged in');
+    }
+
     await firestoreServices.deleteData(
-      path: ApiPath.addCard(currentUser!.uid, paymentMethod.id),
+      path: ApiPath.addCard(currentUser.uid, paymentMethod.id),
     );
   }
 
   @override
-  Future<List<PaymentMethod>> paymentMethods(
-      [bool fetchPreferred = false]) async {
+  Future<List<PaymentMethod>> paymentMethods([bool fetchPreferred = false]) async {
     final currentUser = authServices.currentUser;
 
+    if (currentUser == null) {
+      throw Exception('No current user logged in');
+    }
+
     return await firestoreServices.getCollection(
-      path: ApiPath.cards(currentUser!.uid),
+      path: ApiPath.cards(currentUser.uid),
       builder: (data, documentId) => PaymentMethod.fromMap(data),
       queryBuilder: fetchPreferred == true
           ? (query) => query.where('isPreferred', isEqualTo: true)

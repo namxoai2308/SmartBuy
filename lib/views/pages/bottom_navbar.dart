@@ -8,6 +8,7 @@ import 'package:flutter_ecommerce/views/pages/home/home_page.dart';
 import 'package:flutter_ecommerce/views/pages/profile/profle_page.dart';
 import 'package:flutter_ecommerce/views/pages/home/shop_page.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
+import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
 import 'chatbot_page.dart';
 import 'chatbot_wrapper.dart';
 
@@ -25,7 +26,15 @@ class _BottomNavbarState extends State<BottomNavbar> {
     const HomePage(),
     const ShopPage(),
     const CartPage(),
-    ChatbotWrapper(uid: 'your-uid'),
+      BlocBuilder<HomeCubit, HomeState>(
+         buildWhen: (prev, curr) => curr is HomeSuccess,
+         builder: (context, homeState) {
+           if (homeState is HomeSuccess) {
+              return ChatbotWrapper(products: homeState.allProducts);
+           }
+           return const Center(child: Text("Loading Chatbot..."));
+         }
+      ),
     BlocProvider(
       create: (_) => CheckoutCubit()..getCheckoutData(),
       child: const ProfilePage(),
