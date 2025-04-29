@@ -14,8 +14,9 @@ class ProductDetailsError extends ProductDetailsState {
 
 class ProductDetailsLoaded extends ProductDetailsState {
   final Product product;
+  final List<Product> allProducts;
 
-  ProductDetailsLoaded({required this.product});
+  ProductDetailsLoaded({required this.product, required this.allProducts, });
 }
 
 class AddingToCart extends ProductDetailsState {}

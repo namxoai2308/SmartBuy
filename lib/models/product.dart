@@ -12,6 +12,7 @@ class Product {
   final String? description;
   final String? brand;
   final bool? inStock;
+  final List<String> relatedProductIds;
 
   Product({
     required this.id,
@@ -25,6 +26,7 @@ class Product {
     this.description,
     this.brand,
     this.inStock,
+    this.relatedProductIds = const [],
   });
 
   double get averageRating {
@@ -50,6 +52,7 @@ class Product {
       'reviews': {
         for (var review in reviews) review.id: review.toMap(),
       },
+      'relatedProductIds': relatedProductIds,
     };
   }
 
@@ -61,6 +64,11 @@ class Product {
       final reviewData = entry.value as Map<String, dynamic>;
       return Review.fromMap(reviewId, reviewData);
     }).toList();
+
+    final relatedProductIdsList = (map['relatedProductIds'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
 
     return Product(
       id: id,
@@ -78,6 +86,7 @@ class Product {
       brand: map['brand']?.toString(),
       inStock: map['inStock'] as bool?,
       reviews: reviewsFromMap ?? [],
+      relatedProductIds: relatedProductIdsList,
     );
   }
 }

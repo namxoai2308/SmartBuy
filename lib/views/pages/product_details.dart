@@ -3,9 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/product_details/product_details_cubit.dart';
 import 'package:flutter_ecommerce/views/widgets/drop_down_menu.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
+import 'package:flutter_ecommerce/views/widgets/home/related_products_section.dart';
+import 'package:flutter_ecommerce/models/product.dart';
 
 class ProductDetails extends StatefulWidget {
-  const ProductDetails({super.key});
+  final String productId; // Nhận productId từ bên ngoài
+
+  const ProductDetails({super.key, required this.productId});
 
   @override
   State<ProductDetails> createState() => _ProductDetailsState();
@@ -14,6 +18,17 @@ class ProductDetails extends StatefulWidget {
 class _ProductDetailsState extends State<ProductDetails> {
   bool isFavorite = false;
   bool isHovering = false;
+
+ @override
+ void initState() {
+   super.initState();
+   // Delay gọi sau khi widget gắn vào cây widget hoàn chỉnh
+   WidgetsBinding.instance.addPostFrameCallback((_) {
+     final cubit = BlocProvider.of<ProductDetailsCubit>(context);
+     cubit.getProductDetails(widget.productId);
+   });
+ }
+
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +174,28 @@ class _ProductDetailsState extends State<ProductDetails> {
                                 ),
                               ),
                             const SizedBox(height: 24.0),
+                            YouMayAlsoLikeSection(
+                              relatedProducts: (productDetailsCubit.state as ProductDetailsLoaded)
+                                  .allProducts
+                                  .where((p) => product.relatedProductIds.contains(p.id))  // Lọc các sản phẩm liên quan
+                                  .toList(),
+                              onProductTapped: (Product tappedProduct) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => BlocProvider(
+                                      create: (_) {
+                                        final cubit = ProductDetailsCubit();
+                                        cubit.getProductDetails(tappedProduct.id);
+                                        return cubit;
+                                      },
+                                      child: ProductDetails(productId: tappedProduct.id),
+                                    ),
+                                  ),
+                                );
+                              }
+
+                            ),
 
                             // --- Reviews Section ---
                             const Divider(),
@@ -221,7 +258,6 @@ class _ProductDetailsState extends State<ProductDetails> {
                     ],
                   ),
                 ),
-
                 // Nút Add to Cart cố định góc dưới phải + hover hiệu ứng
                 Positioned(
                   bottom: 16,
@@ -236,7 +272,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                           : Matrix4.identity(),
                       child: FloatingActionButton.extended(
                         backgroundColor: Colors.red,
-                        label: const Text('Add to Cart',style: TextStyle(color: Colors.white)),
+                        label: const Text('Add to Cart', style: TextStyle(color: Colors.white)),
                         icon: const Icon(Icons.shopping_cart, color: Colors.white),
                         onPressed: () async {
                           await productDetailsCubit.addToCart(product);

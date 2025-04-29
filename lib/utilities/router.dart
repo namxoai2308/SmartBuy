@@ -45,20 +45,23 @@ Route<dynamic> onGenerate(RouteSettings settings) {
         ),
         settings: settings,
       );
-    case AppRoutes.productDetailsRoute:
-      final productId = settings.arguments as String;
+case AppRoutes.productDetailsRoute:
+  final productId = settings.arguments as String;
 
-      return CupertinoPageRoute(
-        builder: (_) => BlocProvider(
-          create: (context) {
-            final cubit = ProductDetailsCubit();
-            cubit.getProductDetails(productId);
-            return cubit;
-          },
-          child: const ProductDetails(),
-        ),
-        settings: settings,
+  return CupertinoPageRoute(
+    builder: (context) {
+      return BlocProvider(
+        create: (context) {
+          final cubit = ProductDetailsCubit();
+          cubit.getProductDetails(productId); // ✅ giờ productId nằm trong scope
+          return cubit;
+        },
+        child: ProductDetails(productId: productId), // ✅ cũng ổn rồi
       );
+    },
+    settings: settings,
+  );
+
 
     case AppRoutes.shippingAddressesRoute:
       final checkoutCubit = settings.arguments as CheckoutCubit;
