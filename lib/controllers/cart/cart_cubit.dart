@@ -93,7 +93,11 @@ class CartCubit extends Cubit<CartState> {
         emit(CartError('Failed to clear cart. $e'));
       }
     }
+  void clearCartState() {
 
+    emit(CartLoaded(const [], 0.0));
+    print("CartCubit: Cart state cleared.");
+  }
   Future<void> decreaseQuantity(AddToCartModel cartItem) async {
     final currentState = state;
     if (currentState is CartLoaded && authServices.currentUser != null) {

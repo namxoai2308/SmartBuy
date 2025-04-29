@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
 import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
+import 'package:flutter_ecommerce/models/filter_criteria.dart';
 import 'package:flutter_ecommerce/models/product.dart';
 import 'package:flutter_ecommerce/services/search_history_service.dart';
+import 'package:flutter_ecommerce/views/widgets/home/filter_modal.dart';
 import 'package:flutter_ecommerce/views/widgets/home/list_item_home.dart';
-import 'package:flutter_ecommerce/services/product_filter_service.dart';
-
 
 enum SortOption { popular, newest, customerReview, priceLowToHigh, priceHighToLow }
 
@@ -19,13 +19,15 @@ class ShopPage extends StatefulWidget {
 
 class _ShopPageState extends State<ShopPage> {
   bool isSearching = false;
-  String searchQuery = '';
   final TextEditingController searchController = TextEditingController();
   final SearchHistoryService _searchHistoryService = SearchHistoryService();
 
-  String selectedCategory = 'All';
-  SortOption selectedSortOption = SortOption.priceLowToHigh;
-  final List<String> categories = ['All', 'Clothing', 'Shoes', 'Jewelry', 'electronics', 'furniture', 'others'];
+  final List<String> _availableCategories = [
+    'All', 'clothing', 'shoes', 'Jewelry'
+  ];
+  final List<String> _availableBrands = [
+    'Adidas', 'Nike', 'Gucci', 'Zara', 'H&M', 'Levis', 'Prada', 'Cartier'
+  ];
 
   int _searchActionCount = 0;
   static const int _searchRefreshThreshold = 10;
@@ -36,12 +38,11 @@ class _ShopPageState extends State<ShopPage> {
     super.dispose();
   }
 
-  void _saveSearchQueryAndCheckRefresh() {
-    final trimmedQuery = searchQuery.trim();
+  void _saveSearchQueryAndCheckRefresh(String query) {
+    final trimmedQuery = query.trim();
     if (trimmedQuery.isNotEmpty) {
       _searchHistoryService.addSearchTerm(trimmedQuery);
       _searchActionCount++;
-
       if (_searchActionCount > 0 && _searchActionCount % _searchRefreshThreshold == 0) {
         final authState = context.read<AuthCubit>().state;
         String? userId = (authState is AuthSuccess) ? authState.user.uid : null;
@@ -51,8 +52,13 @@ class _ShopPageState extends State<ShopPage> {
   }
 
   void _showSortOptions(BuildContext context) {
+    final homeCubit = context.read<HomeCubit>();
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return SafeArea(
           child: Column(
@@ -61,9 +67,7 @@ class _ShopPageState extends State<ShopPage> {
               return ListTile(
                 title: Text(_getSortOptionText(option)),
                 onTap: () {
-                  setState(() {
-                    selectedSortOption = option;
-                  });
+                  homeCubit.setSortOption(option);
                   Navigator.pop(context);
                 },
               );
@@ -76,184 +80,250 @@ class _ShopPageState extends State<ShopPage> {
 
   String _getSortOptionText(SortOption option) {
     switch (option) {
-      case SortOption.popular:
-        return 'Popular';
-      case SortOption.newest:
-        return 'Newest';
-      case SortOption.customerReview:
-        return 'Customer review';
-      case SortOption.priceLowToHigh:
-        return 'Price: lowest to high';
-      case SortOption.priceHighToLow:
-        return 'Price: highest to low';
+      case SortOption.popular: return 'Popular';
+      case SortOption.newest: return 'Newest';
+      case SortOption.customerReview: return 'Customer review';
+      case SortOption.priceLowToHigh: return 'Price: lowest to high';
+      case SortOption.priceHighToLow: return 'Price: highest to low';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
-        elevation: 0,
-        title: isSearching
-            ? TextField(
-                controller: searchController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Search products...',
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.grey),
-                    onPressed: () {
-                      setState(() {
-                        searchQuery = '';
-                        searchController.clear();
-                      });
+    return BlocBuilder<HomeCubit, HomeState>(
+      builder: (context, currentHomeState) {
+        FilterCriteria currentFilters = FilterCriteria.initial();
+        SortOption currentSort = SortOption.popular;
+        List<Product> productsToShow = [];
+        String currentSearchQuery = '';
+
+        if (currentHomeState is HomeSuccess) {
+          currentFilters = currentHomeState.appliedFilters;
+          currentSort = currentHomeState.currentSortOption;
+          productsToShow = currentHomeState.filteredShopProducts;
+          currentSearchQuery = currentHomeState.currentSearchQuery;
+        }
+
+        String currentCategory = currentFilters.selectedCategory;
+        List<String> currentBrands = currentFilters.selectedBrands;
+
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            title: isSearching
+                ? TextField(
+                    controller: searchController,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      hintText: 'Search...',
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.grey),
+                              onPressed: () {
+                                context.read<HomeCubit>().setSearchQuery('');
+                                searchController.clear();
+                              },
+                            )
+                          : null,
+
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+                    ),
+                    onChanged: (value) {
+                      context.read<HomeCubit>().setSearchQuery(value);
                     },
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14.0),
+                    onSubmitted: (value) {
+                      _saveSearchQueryAndCheckRefresh(value);
+                      FocusScope.of(context).unfocus();
+                    },
+                  )
+                : null,
+            actions: [
+              IconButton(
+                icon: Icon(
+                  isSearching ? Icons.close : Icons.search,
+                  color: Colors.black,
+                  size: 28,
                 ),
-                onChanged: (value) {
+                onPressed: () {
+                  final previousSearchState = isSearching;
                   setState(() {
-                    searchQuery = value;
+                    isSearching = !isSearching;
+                    if (!isSearching && previousSearchState) {
+                      _saveSearchQueryAndCheckRefresh(searchController.text);
+                      context.read<HomeCubit>().setSearchQuery('');
+                      searchController.clear();
+                    } else if (isSearching) {
+                      searchController.text = currentSearchQuery;
+                      searchController.selection = TextSelection.fromPosition(
+                          TextPosition(offset: searchController.text.length));
+                    }
                   });
                 },
-                onSubmitted: (value) {
-                  _saveSearchQueryAndCheckRefresh();
-                  FocusScope.of(context).unfocus();
-                },
-              )
-            : null,
-        actions: [
-          IconButton(
-            icon: Icon(
-              isSearching ? Icons.close : Icons.search,
-              color: Colors.black,
-              size: 28,
-            ),
-            onPressed: () {
-              final previousSearchState = isSearching;
-              setState(() {
-                isSearching = !isSearching;
-                if (!isSearching && previousSearchState) {
-                  _saveSearchQueryAndCheckRefresh();
-                  searchQuery = '';
-                  searchController.clear();
-                }
-              });
-            },
-          ),
-        ],
-        centerTitle: false,
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isSearching)
-            const Padding(
-              padding: EdgeInsets.only(left: 16.0, top: 0, bottom: 8),
-              child: Text(
-                'My Shop',
-                style: TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
               ),
-            ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.filter_list),
-                  onPressed: () {/* TODO: Filter logic */},
-                  tooltip: 'Filter by category',
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Filters: $selectedCategory',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const Spacer(),
-                IconButton(
-                  icon: const Icon(Icons.sort),
-                  onPressed: () {
-                    _showSortOptions(context);
-                  },
-                  tooltip: 'Sort options',
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _getSortOptionText(selectedSortOption),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
+            ],
+            centerTitle: false,
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: BlocBuilder<HomeCubit, HomeState>(
-              builder: (context, state) {
-                if (state is HomeLoading) {
-                  return const Center(child: CircularProgressIndicator.adaptive());
-                } else if (state is HomeSuccess) {
-                  final filteredProducts = ProductFilterService.filterAndSortProducts(
-                    products: state.allProducts,
-                    searchQuery: searchQuery,
-                    selectedCategory: selectedCategory,
-                    selectedSortOption: selectedSortOption,
-                  );
-
-                  if (filteredProducts.isEmpty) {
-                    return Center(
+          body: Builder(
+            builder: (context) {
+              if (currentHomeState is HomeLoading || currentHomeState is HomeInitial) {
+                return const Center(child: CircularProgressIndicator.adaptive());
+              } else if (currentHomeState is HomeFailed) {
+                return Center(child: Text('Error: ${currentHomeState.error}'));
+              } else if (currentHomeState is HomeSuccess) {
+                if (productsToShow.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
                       child: Text(
-                        searchQuery.isNotEmpty || selectedCategory != 'All'
-                            ? 'No products match your criteria.'
-                            : 'No products available in this shop yet.',
-                        style: TextStyle(color: Colors.grey[600]),
+                        currentSearchQuery.isNotEmpty || currentFilters.isAnyFilterApplied
+                            ? 'No products found matching your criteria. Try adjusting filters or search.'
+                            : 'No products available in the shop right now.',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
                         textAlign: TextAlign.center,
                       ),
-                    );
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: GridView.builder(
-                      padding: const EdgeInsets.only(top: 8, bottom: 16),
-                      itemCount: filteredProducts.length,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 0.63,
-                      ),
-                      itemBuilder: (context, index) {
-                        final product = filteredProducts[index];
-                        return ListItemHome(
-                          product: product,
-                          isNew: true,
-                        );
-                      },
                     ),
                   );
-                } else if (state is HomeFailed) {
-                  final errorMessage = state.toString();
-                  return Center(child: Text('Error loading products: $errorMessage'));
-                } else {
-                  return const Center(child: Text("Loading shop data..."));
                 }
-              },
-            ),
+
+                return CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!isSearching)
+                            const Padding(
+                              padding: EdgeInsets.only(left: 16.0, top: 0, bottom: 8),
+                              child: Text('My Shop', style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
+                            ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16.0, 0.0, 16.0, 8.0),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: _availableBrands.map((brand) {
+                                  final isSelected = currentBrands.contains(brand);
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 8.0),
+                                    child: FilterChip(
+                                      label: Text(brand),
+                                      selected: isSelected,
+                                      onSelected: (_) {
+                                        context.read<HomeCubit>().toggleBrandFilter(brand);
+                                      },
+                                      backgroundColor: Colors.black,
+                                      selectedColor: Colors.black,
+                                      labelStyle: TextStyle(
+                                        color: Colors.white ,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      checkmarkColor: Colors.white,
+                                      showCheckmark: true,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(40.0), // bo tròn hơn
+                                        side: BorderSide(
+                                          color: isSelected ? Colors.white : Colors.white,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0), // padding rộng hơn
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+
+                          Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[200],
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey[400]!),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  InkWell(
+                                    onTap: () {
+                                      showModalBottomSheet(
+                                        context: context,
+                                        isScrollControlled: true,
+                                        shape: const RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                                        ),
+                                        builder: (_) => FilterModal(
+                                          initialCriteria: currentFilters,
+                                          onApply: (appliedCriteria) {
+                                            context.read<HomeCubit>().applyFilterCriteria(appliedCriteria);
+                                          },
+                                        ),
+                                      );
+                                    },
+                                    child: Row(
+                                      children: const [
+                                        Icon(Icons.filter_list, size: 18, color: Colors.black),
+                                        SizedBox(width: 4),
+                                        Text('Filters', style: TextStyle(fontSize: 14, color: Colors.black)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 90),
+                                  InkWell(
+                                    onTap: () => _showSortOptions(context),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.swap_vert, size: 18, color: Colors.black),
+                                        const SizedBox(width: 4),
+                                        Text(_getSortOptionText(currentSort),
+                                            style: const TextStyle(fontSize: 14, color: Colors.black)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: 12),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      sliver: SliverGrid(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final product = productsToShow[index];
+                            return ListItemHome(product: product, isNew: index < 4);
+                          },
+                          childCount: productsToShow.length,
+                        ),
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.63,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return const SizedBox.shrink();
+              }
+            },
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

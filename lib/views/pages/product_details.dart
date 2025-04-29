@@ -5,10 +5,11 @@ import 'package:flutter_ecommerce/views/widgets/drop_down_menu.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
 import 'package:flutter_ecommerce/views/widgets/home/related_products_section.dart';
 import 'package:flutter_ecommerce/models/product.dart';
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
+// ProductDetails widget displays the detailed view of a selected product.
 class ProductDetails extends StatefulWidget {
-  final String productId; // Nhận productId từ bên ngoài
-
+  final String productId;
   const ProductDetails({super.key, required this.productId});
 
   @override
@@ -16,23 +17,24 @@ class ProductDetails extends StatefulWidget {
 }
 
 class _ProductDetailsState extends State<ProductDetails> {
-  bool isFavorite = false;
-  bool isHovering = false;
+  bool isFavorite = false;  // Track whether the product is marked as favorite.
+  bool isHovering = false;  // Track if the user is hovering over the add to cart button.
+  String? selectedSize;  // Selected size of the product.
+  String? selectedColor; // Selected color of the product.
 
- @override
- void initState() {
-   super.initState();
-   // Delay gọi sau khi widget gắn vào cây widget hoàn chỉnh
-   WidgetsBinding.instance.addPostFrameCallback((_) {
-     final cubit = BlocProvider.of<ProductDetailsCubit>(context);
-     cubit.getProductDetails(widget.productId);
-   });
- }
-
+  // Initialize the product details after the widget is built.
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cubit = BlocProvider.of<ProductDetailsCubit>(context);
+      cubit.getProductDetails(widget.productId);  // Fetch product details.
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
+    final size = MediaQuery.of(context).size;  // Get screen size for layout adjustments.
     final productDetailsCubit = BlocProvider.of<ProductDetailsCubit>(context);
 
     return BlocBuilder<ProductDetailsCubit, ProductDetailsState>(
@@ -42,18 +44,21 @@ class _ProductDetailsState extends State<ProductDetails> {
           current is ProductDetailsLoaded ||
           current is ProductDetailsError,
       builder: (context, state) {
+        // Handle loading state
         if (state is ProductDetailsLoading) {
           return const Scaffold(
-            body: Center(child: CircularProgressIndicator.adaptive()),
+            body: Center(child: CircularProgressIndicator.adaptive()), // Show loading indicator
           );
         } else if (state is ProductDetailsError) {
           return Scaffold(
-            body: Center(child: Text(state.error)),
+            body: Center(child: Text(state.error)), // Show error message if fetching fails
           );
         } else if (state is ProductDetailsLoaded) {
           final product = state.product;
 
+          // Return the product details screen after product is successfully loaded
           return Scaffold(
+            backgroundColor: Colors.grey[100],
             appBar: AppBar(
               title: Text(
                 product.title,
@@ -62,7 +67,7 @@ class _ProductDetailsState extends State<ProductDetails> {
               ),
               actions: [
                 IconButton(
-                  onPressed: () {},
+                  onPressed: () {},  // Share functionality (currently empty)
                   icon: const Icon(Icons.share),
                 ),
               ],
@@ -70,14 +75,17 @@ class _ProductDetailsState extends State<ProductDetails> {
             body: Stack(
               children: [
                 SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 80),
+                  padding: const EdgeInsets.only(bottom: 80),  // Add padding at the bottom
                   child: Column(
                     children: [
-                      Image.network(
-                        product.imgUrl,
+                      Container(
                         width: double.infinity,
-                        height: size.height * 0.5,
-                        fit: BoxFit.contain,
+                        height: size.height * 0.5,  // Set image height to 50% of screen height
+                        color: Colors.white,
+                        child: Image.network(
+                          product.imgUrl,
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       const SizedBox(height: 8.0),
                       Padding(
@@ -87,32 +95,30 @@ class _ProductDetailsState extends State<ProductDetails> {
                           children: [
                             Row(
                               children: [
-                                SizedBox(
-                                  width: 140,
-                                  height: 50,
-                                  child: DropDownMenuComponent(
-                                    items: const ['S', 'M', 'L', 'XL', 'XXL'],
-                                    hint: 'Size',
-                                    onChanged: (String? newValue) =>
-                                        productDetailsCubit.setSize(newValue!),
-                                  ),
+                                _buildSelectOptionButton(
+                                  label: selectedSize ?? 'Size',
+                                  title: 'Select Size',
+                                  options: ['S', 'M', 'L', 'XL', 'XXL'],
+                                  onSelected: (value) {
+                                    setState(() => selectedSize = value);
+                                    productDetailsCubit.setSize(value);  // Set selected size
+                                  },
                                 ),
                                 const SizedBox(width: 16),
-                                SizedBox(
-                                  width: 140,
-                                  height: 50,
-                                  child: DropDownMenuComponent(
-                                    items: const ['Red', 'Blue', 'Green', 'Black', 'White'],
-                                    hint: 'Color',
-                                    onChanged: (String? newValue) =>
-                                        productDetailsCubit.setColor(newValue!),
-                                  ),
+                                _buildSelectOptionButton(
+                                  label: selectedColor ?? 'Color',
+                                  title: 'Select Color',
+                                  options: ['Red', 'Blue', 'Green', 'Black', 'White'],
+                                  onSelected: (value) {
+                                    setState(() => selectedColor = value);
+                                    productDetailsCubit.setColor(value);  // Set selected color
+                                  },
                                 ),
                                 const Spacer(),
                                 InkWell(
                                   onTap: () {
                                     setState(() {
-                                      isFavorite = !isFavorite;
+                                      isFavorite = !isFavorite;  // Toggle favorite status
                                     });
                                   },
                                   child: Container(
@@ -141,6 +147,7 @@ class _ProductDetailsState extends State<ProductDetails> {
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.titleLarge!.copyWith(
                                           fontWeight: FontWeight.w600,
+                                          fontSize: 24,
                                         ),
                                   ),
                                 ),
@@ -149,35 +156,40 @@ class _ProductDetailsState extends State<ProductDetails> {
                                   '\$${product.price}',
                                   style: Theme.of(context).textTheme.titleLarge!.copyWith(
                                         fontWeight: FontWeight.w600,
+                                        fontSize: 24,
                                       ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 8.0),
                             Text(
-                              product.category,
+                              product.category.isNotEmpty
+                                  ? product.category[0].toUpperCase() + product.category.substring(1)
+                                  : '',
                               style: Theme.of(context).textTheme.labelMedium!.copyWith(
                                     color: Colors.black54,
+                                    fontSize: 14,
                                   ),
                             ),
                             const SizedBox(height: 16.0),
                             if (product.brand != null)
-                              _buildInfoRow('Brand', product.brand!),
+                              _buildInfoRow('Brand', product.brand!, fontSize: 18,),
                             if (product.inStock != null)
-                              _buildInfoRow('Availability', product.inStock! ? 'In Stock' : 'Out of Stock'),
+                              _buildInfoRow('Availability', product.inStock! ? 'In Stock' : 'Out of Stock', fontSize: 18,),
                             if (product.description != null)
                               Padding(
                                 padding: const EdgeInsets.only(top: 12.0),
                                 child: Text(
                                   product.description!,
-                                  style: Theme.of(context).textTheme.bodyLarge,
+                                  style: Theme.of(context).textTheme.bodyLarge!.copyWith(
+                                  fontSize: 18,
+                                  ),
                                 ),
                               ),
                             const SizedBox(height: 24.0),
                             YouMayAlsoLikeSection(
-                              relatedProducts: (productDetailsCubit.state as ProductDetailsLoaded)
-                                  .allProducts
-                                  .where((p) => product.relatedProductIds.contains(p.id))  // Lọc các sản phẩm liên quan
+                              relatedProducts: state.allProducts
+                                  .where((p) => product.relatedProductIds.contains(p.id))
                                   .toList(),
                               onProductTapped: (Product tappedProduct) {
                                 Navigator.push(
@@ -193,15 +205,15 @@ class _ProductDetailsState extends State<ProductDetails> {
                                     ),
                                   ),
                                 );
-                              }
-
+                              },
                             ),
-
-                            // --- Reviews Section ---
                             const Divider(),
                             Text(
                               'Reviews',
-                              style: Theme.of(context).textTheme.titleMedium,
+                              style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                                                                     fontSize: 24,
+                                                                     fontWeight: FontWeight.bold,
+                                                                   ),
                             ),
                             const SizedBox(height: 12.0),
                             if (product.reviews.isEmpty)
@@ -226,26 +238,71 @@ class _ProductDetailsState extends State<ProductDetails> {
                                 itemCount: product.reviews.length,
                                 itemBuilder: (context, index) {
                                   final review = product.reviews[index];
-                                  return ListTile(
-                                    leading: const Icon(Icons.person),
-                                    title: Text(review.userName),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: List.generate(
-                                            5,
-                                            (i) => Icon(
-                                              i < review.rating
-                                                  ? Icons.star
-                                                  : Icons.star_border,
-                                              size: 16,
-                                              color: Colors.amber,
+                                  return Card(
+                                  color: Colors.white,
+                                    elevation: 2,
+                                    margin: const EdgeInsets.symmetric(vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Row(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 22,
+                                            backgroundColor: Colors.grey.shade300,
+                                            child: const Icon(Icons.person, color: Colors.white),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  review.userName,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  children: [
+                                                    RatingBarIndicator(
+                                                      rating: review.rating.toDouble(),
+                                                      itemBuilder: (context, _) => const Icon(
+                                                        Icons.star,
+                                                        color: Colors.amber,
+                                                      ),
+                                                      itemCount: 5,
+                                                      itemSize: 18.0,
+                                                      direction: Axis.horizontal,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      '${review.rating}/5',
+                                                      style: const TextStyle(color: Colors.black54),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  review.comment,
+                                                  style: const TextStyle(fontSize: 15),
+                                                ),
+                                                const SizedBox(height: 6),
+                                                Text(
+                                                  review.createdAt.toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.grey,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                        ),
-                                        Text(review.comment),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   );
                                 },
@@ -258,7 +315,6 @@ class _ProductDetailsState extends State<ProductDetails> {
                     ],
                   ),
                 ),
-                // Nút Add to Cart cố định góc dưới phải + hover hiệu ứng
                 Positioned(
                   bottom: 16,
                   right: 16,
@@ -268,13 +324,22 @@ class _ProductDetailsState extends State<ProductDetails> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       transform: isHovering
-                          ? (Matrix4.identity()..scale(1.05))
+                          ? (Matrix4.identity()..scale(1.05))  // Scale button when hovered
                           : Matrix4.identity(),
                       child: FloatingActionButton.extended(
                         backgroundColor: Colors.red,
                         label: const Text('Add to Cart', style: TextStyle(color: Colors.white)),
                         icon: const Icon(Icons.shopping_cart, color: Colors.white),
                         onPressed: () async {
+                          // Show message if color or size is not selected
+                          if (selectedColor == null || selectedSize == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please select color and size')),
+                            );
+                            return;
+                          }
+
+                          // Add product to the cart and show confirmation
                           await productDetailsCubit.addToCart(product);
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Product added to cart!')),
@@ -288,23 +353,60 @@ class _ProductDetailsState extends State<ProductDetails> {
             ),
           );
         } else {
-          return const SizedBox.shrink();
+          return const SizedBox.shrink();  // Return an empty widget if no state is matched.
         }
       },
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  // Helper method to build information rows
+  Widget _buildInfoRow(String label, String value, {double fontSize = 14.0}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
           Text(
             '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: fontSize,),
           ),
-          Expanded(child: Text(value)),
+          Expanded(child: Text(
+          value,
+          style: TextStyle(
+             fontSize: fontSize,
+           ),),),
         ],
+      ),
+    );
+  }
+
+  // Helper method to build select option buttons for size and color
+  Widget _buildSelectOptionButton({
+    required String label,
+    required String title,
+    required List<String> options,
+    required Function(String) onSelected,
+  }) {
+    return SizedBox(
+      width: 165,
+      height: 50,
+      child: InkWell(
+        onTap: () {
+          showSelectOptionBottomSheet(
+            context: context,
+            title: title,
+            options: options,
+            onSelected: onSelected,
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          alignment: Alignment.centerLeft,
+          child: Text(label),
+        ),
       ),
     );
   }

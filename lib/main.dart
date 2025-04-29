@@ -7,7 +7,7 @@ import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
 import 'package:flutter_ecommerce/utilities/constants.dart';
 import 'package:flutter_ecommerce/utilities/router.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:flutter_ecommerce/views/pages/splash_screen.dart';
+import 'package:flutter_ecommerce/views/pages/auth_wrapper.dart';
 import 'package:flutter_ecommerce/services/search_history_service.dart';
 import 'package:provider/provider.dart';
 
@@ -29,17 +29,19 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-      Provider<SearchHistoryService>(
-                create: (_) => SearchHistoryService(),
-              ),
+        Provider<SearchHistoryService>(
+          create: (_) => SearchHistoryService(),
+        ),
         BlocProvider<AuthCubit>(
           create: (context) => AuthCubit()..authStatus(),
+          lazy: false,
         ),
         BlocProvider<CartCubit>(
           create: (context) => CartCubit()..getCartItems(),
         ),
         BlocProvider<HomeCubit>(
-          create: (context) => HomeCubit(),
+          create: (context) => HomeCubit(authCubit: context.read<AuthCubit>()),
+          lazy: false,
         ),
       ],
       child: MaterialApp(
@@ -61,14 +63,14 @@ class MyApp extends StatelessWidget {
           inputDecorationTheme: InputDecorationTheme(
             labelStyle: Theme.of(context).textTheme.bodyMedium,
             border: OutlineInputBorder(
-               borderRadius: BorderRadius.circular(8.0),
-               borderSide: const BorderSide(color: Colors.grey),
-             ),
+              borderRadius: BorderRadius.circular(8.0),
+              borderSide: const BorderSide(color: Colors.grey),
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.0),
               borderSide: const BorderSide(color: Colors.grey),
             ),
-             focusedBorder: OutlineInputBorder(
+            focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8.0),
               borderSide: BorderSide(color: Colors.red.shade700),
             ),
@@ -82,21 +84,22 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-        home: const SplashScreen(),
+        home: const AuthWrapper(),
         onGenerateRoute: onGenerate,
         builder: (context, child) {
           return BlocListener<AuthCubit, AuthState>(
-              listener: (context, state) {
-                final homeCubit = context.read<HomeCubit>();
-                if (state is AuthSuccess) {
-                  homeCubit.refreshRecommendations(userId: state.user.uid);
-                } else if (state is AuthInitial) {
-                  homeCubit.refreshRecommendations(userId: null);
-                }
-              },
-              listenWhen: (previous, current) =>
-                  previous.runtimeType != current.runtimeType && previous is! AuthLoading,
-              child: child!,
+            listener: (context, state) {
+              final cartCubit = context.read<CartCubit>();
+              if (state is AuthSuccess) {
+                print("Main Listener: AuthSuccess -> Getting Cart Items");
+                cartCubit.getCartItems();
+              } else if (state is AuthInitial) {
+                print("Main Listener: AuthInitial -> Clearing Cart State");
+                cartCubit.clearCartState();
+              }
+            },
+            listenWhen: (previous, current) => previous.runtimeType != current.runtimeType,
+            child: child!,
           );
         },
       ),

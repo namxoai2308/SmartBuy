@@ -16,47 +16,37 @@ class ProductDetailsCubit extends Cubit<ProductDetailsState> {
   final productDetailsServices = ProductDetailsServicesImpl();
   final cartServices = CartServicesImpl();
   final authServices = AuthServicesImpl();
-  final homeServices = HomeServicesImpl(); // Khai báo homeServices để lấy allProducts
+  final homeServices = HomeServicesImpl();
 
   String? size;
   String? color;
 
-  List<Product> allProducts = []; // Lưu tất cả sản phẩm
+  List<Product> allProducts = [];
 
 Future<void> getProductDetails(String productId) async {
   emit(ProductDetailsLoading());
   try {
-    // Lấy thông tin chi tiết của sản phẩm
     final product = await productDetailsServices.getProductDetails(productId);
-
-    // Lấy tất cả các sản phẩm từ dịch vụ homeServices
     final allProducts = await homeServices.getAllProducts();
 
-    // Emit trạng thái đã tải sản phẩm chi tiết và danh sách tất cả các sản phẩm
     emit(ProductDetailsLoaded(product: product, allProducts: allProducts));
   } catch (e) {
     emit(ProductDetailsError(e.toString()));
   }
 }
 
-
-
-// Hàm load allProducts từ HomeServices
 Future<void> loadAllProducts() async {
   try {
-    final products = await homeServices.getAllProducts(); // Gọi service để lấy tất cả sản phẩm
+    final products = await homeServices.getAllProducts();
     allProducts = products;
-
-    // Kiểm tra nếu có sản phẩm để truyền vào ProductDetailsLoaded
     if (allProducts.isNotEmpty) {
-      final product = allProducts.first; // Lấy sản phẩm đầu tiên làm ví dụ (hoặc có thể thay bằng sản phẩm khác)
-      emit(ProductDetailsLoaded(product: product, allProducts: allProducts)); // Truyền cả product và allProducts vào
+      final product = allProducts.first;
+      emit(ProductDetailsLoaded(product: product, allProducts: allProducts));
     }
   } catch (e) {
     print('Error loading all products: $e');
   }
 }
-
 
   String generateCartItemId({
     required String productId,
@@ -100,13 +90,30 @@ Future<void> loadAllProducts() async {
     }
   }
 
-  void setSize(String newSize) {
-    size = newSize;
-    emit(SizeSelected(newSize));
+void setSize(String newSize) {
+  size = newSize;
+  if (state is ProductDetailsLoaded) {
+    final currentState = state as ProductDetailsLoaded;
+    emit(ProductDetailsLoaded(
+      product: currentState.product,
+      allProducts: currentState.allProducts,
+      selectedSize: newSize,
+      selectedColor: currentState.selectedColor,
+    ));
   }
+}
 
-  void setColor(String newColor) {
-    color = newColor;
-    emit(ColorSelected(newColor));
+void setColor(String newColor) {
+  color = newColor;
+  if (state is ProductDetailsLoaded) {
+    final currentState = state as ProductDetailsLoaded;
+    emit(ProductDetailsLoaded(
+      product: currentState.product,
+      allProducts: currentState.allProducts,
+      selectedSize: currentState.selectedSize,
+      selectedColor: newColor,
+    ));
   }
+}
+
 }

@@ -70,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen> {
               CircularProgressIndicator(color: Colors.white),
               SizedBox(height: 20),
               Text(
-                'Wellcom',
+                'Wellcome',
                 style: TextStyle(color: Colors.white),
                ),
            ],
