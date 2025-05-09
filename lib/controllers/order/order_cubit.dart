@@ -1,160 +1,186 @@
 // lib/controllers/order/order_cubit.dart
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart'; // Import để dùng debugPrint
-import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
-import 'package:flutter_ecommerce/models/order_model.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart'; // Cần để lấy userId
+import 'package:flutter_ecommerce/models/order/order_model.dart';
 import 'package:flutter_ecommerce/services/order_services.dart';
-import 'package:meta/meta.dart';
+// `meta.dart` không còn cần thiết khi dùng Equatable và khai báo part of
 
-part 'order_state.dart';
+part 'order_state.dart'; // Đảm bảo dòng này tồn tại
 
 class OrderCubit extends Cubit<OrderState> {
   final OrderServices orderServices;
-  final AuthCubit authCubit;
+  final AuthCubit authCubit; // AuthCubit để lấy thông tin người dùng
 
-  List<OrderModel> _originalOrders = [];
-  OrderStatus? _selectedFilter;
+  List<OrderModel> _masterOrderList = []; // Danh sách gốc chứa tất cả đơn hàng đã fetch
+  OrderStatus? _currentFilterStatus; // Trạng thái filter hiện tại
 
   OrderCubit({required this.orderServices, required this.authCubit})
       : super(const OrderInitial()) {
     debugPrint('🚀 OrderCubit INITIALIZED - HashCode: $hashCode');
   }
 
-  Future<void> fetchOrders() async {
+  /// Fetches orders for the currently logged-in user.
+  /// [defaultFilterStatus] is applied after fetching.
+  Future<void> fetchOrders({OrderStatus defaultFilterStatus = OrderStatus.pending}) async {
     final authState = authCubit.state;
 
     if (authState is AuthSuccess) {
       final userId = authState.user.uid;
-      debugPrint('🛒 OrderCubit: Fetching orders for userId: $userId');
+      debugPrint('🛒 OrderCubit: Fetching orders for CURRENT USER: $userId');
       emit(const OrderLoading());
       try {
-        _originalOrders = await orderServices.getOrders(userId);
-        debugPrint('🛒 OrderCubit: FETCHED ${_originalOrders.length} original orders.');
-        // Áp dụng bộ lọc đang chọn (hoặc mặc định) sau khi fetch
-        _emitFilteredOrders();
+        _masterOrderList = await orderServices.getOrders(userId); // Gọi service lấy đơn hàng của user
+        debugPrint('🛒 OrderCubit: FETCHED ${_masterOrderList.length} orders for user $userId.');
+        _currentFilterStatus = defaultFilterStatus; // Set filter mặc định
+        _applyFilterAndEmit();
       } catch (e) {
-        debugPrint('🛒 OrderCubit: ERROR fetching orders: $e');
+        debugPrint('🛒 OrderCubit: ERROR fetching user orders: $e');
+        _masterOrderList = []; // Xóa list nếu lỗi
+        _currentFilterStatus = null;
         emit(OrderError(e.toString()));
       }
     } else {
-      debugPrint('🛒 OrderCubit: Cannot fetch orders, user not logged in.');
+      debugPrint('🛒 OrderCubit: Cannot fetch user orders, user not logged in.');
+      _masterOrderList = [];
+      _currentFilterStatus = null;
       emit(const OrderError('User not logged in. Cannot fetch orders.'));
     }
   }
 
-  void filterOrders(OrderStatus? status) {
-    debugPrint('🛒 OrderCubit: FILTERING called with status: $status. Current filter: $_selectedFilter');
-    debugPrint('🛒 OrderCubit: Original orders list size before filter: ${_originalOrders.length}');
-
-    _selectedFilter = status;
-    _emitFilteredOrders();
+  /// Fetches ALL orders from the system (for Admin).
+  /// [defaultFilterStatus] is applied after fetching.
+  /// **QUAN TRỌNG**: Bạn cần tạo phương thức `getAllOrders()` trong `OrderServices`.
+  Future<void> fetchAllOrdersForAdmin({OrderStatus defaultFilterStatus = OrderStatus.pending}) async {
+    // Có thể thêm kiểm tra quyền admin ở đây nếu cần,
+    // nhưng thường trang admin đã được bảo vệ bởi Route Guard hoặc logic trong UI.
+    debugPrint('🛒 OrderCubit: Fetching ALL orders for ADMIN.');
+    emit(const OrderLoading());
+    try {
+      // Yêu cầu OrderServices phải có phương thức này:
+      _masterOrderList = await orderServices.getAllOrders(); // Đây là phương thức MỚI cần tạo trong OrderServices
+      debugPrint('🛒 OrderCubit: FETCHED ${_masterOrderList.length} total orders for admin.');
+      _currentFilterStatus = defaultFilterStatus; // Set filter mặc định
+      _applyFilterAndEmit();
+    } catch (e) {
+      debugPrint('🛒 OrderCubit: ERROR fetching all admin orders: $e');
+      _masterOrderList = []; // Xóa list nếu lỗi
+      _currentFilterStatus = null;
+      emit(OrderError(e.toString()));
+    }
   }
 
-  void _emitFilteredOrders() {
-    debugPrint('🛒 OrderCubit: Emitting filtered orders. Selected filter: $_selectedFilter. Original list size: ${_originalOrders.length}');
+  /// Applies the [_currentFilterStatus] to the [_masterOrderList] and emits [OrderLoaded].
+  void filterOrders(OrderStatus? status) {
+    debugPrint('🛒 OrderCubit: FILTERING called with status: $status. Current master list size: ${_masterOrderList.length}');
+    _currentFilterStatus = status;
+    _applyFilterAndEmit();
+  }
 
-    // Kiểm tra nếu state hiện tại không phải loaded và list gốc rỗng thì không làm gì nhiều
-    // Hoặc emit lại state lỗi nếu trước đó là lỗi
-    if (state is! OrderLoaded && _originalOrders.isEmpty) {
-        debugPrint('🛒 OrderCubit: Cannot filter, original orders list is empty or state is not OrderLoaded.');
-        if (state is OrderError) {
-           emit(state); // Giữ nguyên lỗi
-        } else if (state is OrderInitial || state is OrderLoading){
-             emit(const OrderLoaded([])); // Emit rỗng nếu đang loading/initial mà gọi filter
-        }
+  void _applyFilterAndEmit() {
+    debugPrint('🛒 OrderCubit: Applying filter. Selected filter: $_currentFilterStatus. Master list size: ${_masterOrderList.length}');
+
+    // Nếu lần fetch đầu tiên đã lỗi và _masterOrderList rỗng, không nên emit OrderLoaded
+    // mà giữ nguyên OrderError đã được emit trước đó từ fetchCurrentUserOrders/fetchAllOrdersForAdmin.
+    if (state is OrderError && _masterOrderList.isEmpty) {
+        debugPrint('🛒 OrderCubit: Master list is empty and current state is Error. Retaining Error state.');
+        // Không emit gì cả, giữ nguyên state lỗi đã có.
+        // Nếu muốn UI hiển thị "không có đơn hàng" thay vì lỗi, thì cần logic khác.
+        // Ví dụ: emit(OrderLoaded([])); // nếu muốn bỏ qua lỗi và hiển thị list rỗng
         return;
     }
 
-
     List<OrderModel> ordersToEmit;
 
-    if (_selectedFilter == null) {
-      // Tạo bản sao của list gốc
-      ordersToEmit = List.from(_originalOrders);
-      debugPrint('🛒 OrderCubit: Emitting ALL ${ordersToEmit.length} orders.');
+    if (_currentFilterStatus == null) {
+      ordersToEmit = List.from(_masterOrderList); // Tạo bản sao, không filter
+      debugPrint('🛒 OrderCubit: No filter applied. Emitting ALL ${ordersToEmit.length} orders from master list.');
     } else {
-      // Lọc từ list gốc
-      ordersToEmit = _originalOrders
-          .where((order) => order.status == _selectedFilter)
+      ordersToEmit = _masterOrderList
+          .where((order) => order.status == _currentFilterStatus)
           .toList();
-      debugPrint('🛒 OrderCubit: Filtered for $_selectedFilter. Emitting ${ordersToEmit.length} orders.');
+      debugPrint('🛒 OrderCubit: Filtered for $_currentFilterStatus. Emitting ${ordersToEmit.length} orders.');
     }
-    // Emit state mới, Equatable sẽ xử lý việc có cần rebuild UI hay không
-    emit(OrderLoaded(ordersToEmit));
+    emit(OrderLoaded(ordersToEmit)); // Luôn emit OrderLoaded ở đây sau khi lọc/không lọc
   }
 
-  // --- HÀM MỚI ĐỂ HỦY ĐƠN HÀNG ---
+  /// Cancels an order by its ID. Updates the order status to 'cancelled'.
   Future<bool> cancelOrder(String orderId) async {
-    // Tùy chọn: Emit state riêng cho việc hủy đơn hàng để hiển thị loading/indicator
-    // Ví dụ: emit(OrderActionLoading(orderId));
-
-    final currentState = state; // Lưu state hiện tại để có thể revert nếu lỗi
+    // final previousState = state; // Lưu state trước đó để có thể revert nếu cần thiết
+    // emit(OrderLoading()); // Cân nhắc emit loading nếu thao tác hủy tốn thời gian
 
     try {
-      // Gọi service để cập nhật trạng thái đơn hàng trong Firestore
       await orderServices.updateOrderStatus(orderId, OrderStatus.cancelled);
 
-      // Cập nhật lại danh sách đơn hàng trong state của Cubit (quan trọng!)
-      // Cách 1: Cập nhật trực tiếp list gốc và emit lại (hiệu quả nếu list lớn)
-      final orderIndex = _originalOrders.indexWhere((o) => o.id == orderId);
+      final orderIndex = _masterOrderList.indexWhere((o) => o.id == orderId);
       if (orderIndex != -1) {
-        // Tạo bản sao của đơn hàng với trạng thái mới
-        // Sử dụng copyWith nếu có, nếu không tạo lại thủ công
-         final originalOrder = _originalOrders[orderIndex];
-         final updatedOrder = OrderModel( // Tạo lại object thủ công
-            id: originalOrder.id,
-            userId: originalOrder.userId,
-            items: originalOrder.items,
-            totalAmount: originalOrder.totalAmount,
-            deliveryFee: originalOrder.deliveryFee,
-            shippingAddress: originalOrder.shippingAddress,
-            paymentMethodDetails: originalOrder.paymentMethodDetails,
-            status: OrderStatus.cancelled, // <-- Cập nhật status
-            createdAt: originalOrder.createdAt,
-            trackingNumber: originalOrder.trackingNumber,
-            deliveryMethodInfo: originalOrder.deliveryMethodInfo,
-            discountInfo: originalOrder.discountInfo
-         );
-        _originalOrders[orderIndex] = updatedOrder; // Thay thế trong list gốc
-        // Emit lại state với danh sách đã lọc theo filter hiện tại
-        _emitFilteredOrders();
+        final originalOrder = _masterOrderList[orderIndex];
+
+        // Tạo một bản sao của OrderModel với status đã cập nhật.
+        // Cách tốt nhất là dùng hàm `copyWith` nếu OrderModel có.
+        // Nếu không có, bạn phải tạo lại thủ công như code gốc của bạn:
+        final updatedOrder = OrderModel(
+          id: originalOrder.id,
+          userId: originalOrder.userId,
+          items: originalOrder.items, // Giữ nguyên list items
+          totalAmount: originalOrder.totalAmount,
+          deliveryFee: originalOrder.deliveryFee,
+          shippingAddress: originalOrder.shippingAddress, // Giữ nguyên object
+          paymentMethodDetails: originalOrder.paymentMethodDetails, // Giữ nguyên object
+          status: OrderStatus.cancelled, // <<--- TRẠNG THÁI MỚI
+          createdAt: originalOrder.createdAt,
+          trackingNumber: originalOrder.trackingNumber,
+          deliveryMethodInfo: originalOrder.deliveryMethodInfo, // Giữ nguyên object
+          discountInfo: originalOrder.discountInfo, // Giữ nguyên object
+//           totalQuantity: originalOrder.totalQuantity, // Giả sử có trường này
+          // ... đảm bảo tất cả các trường khác của OrderModel được sao chép
+        );
+
+        _masterOrderList[orderIndex] = updatedOrder;
+        _applyFilterAndEmit(); // Áp dụng lại filter và emit state mới (OrderLoaded)
         debugPrint('✅ Order $orderId cancelled successfully in Cubit and state updated.');
-        return true; // Trả về true để báo thành công
+        return true;
       } else {
-        // Trường hợp hiếm: không tìm thấy đơn hàng trong list gốc
-        // Fetch lại toàn bộ danh sách để đảm bảo đồng bộ
-        debugPrint('⚠️ Order $orderId not found in local list after cancelling. Refetching...');
-        await fetchOrders(); // Fetch lại có thể làm mất filter đang chọn
-        return true; // Vẫn coi là thành công vì backend đã cập nhật
+        debugPrint('⚠️ Order $orderId not found in local master list after cancelling. It might have been removed or not fetched.');
+        // Nếu không tìm thấy, có thể đơn hàng đã bị xóa hoặc danh sách không đồng bộ.
+        // Trong trường hợp này, việc gọi lại fetch (user hoặc admin tùy ngữ cảnh) có thể hữu ích,
+        // nhưng để đơn giản, ta chỉ log và giả định backend đã xử lý.
+        // Nếu muốn đồng bộ hoàn toàn, bạn cần logic để fetch lại đúng view.
+        _applyFilterAndEmit(); // Vẫn emit lại để UI có thể refresh (nếu có gì đó thay đổi từ nơi khác)
+        return true; // Coi như thành công vì backend đã cập nhật
       }
-
-      // Cách 2: Fetch lại toàn bộ danh sách (đơn giản hơn nhưng tốn kém hơn)
-      // await fetchOrders();
-      // return true;
-
     } catch (e) {
       debugPrint('🛒 OrderCubit: ERROR cancelling order $orderId: $e');
-      // Tùy chọn: Emit state lỗi riêng cho việc hủy đơn
-      // Ví dụ: emit(OrderActionFailed(orderId, e.toString()));
-
-      // Hoặc dùng state lỗi chung và giữ nguyên danh sách hiện tại
-      emit(OrderError('Failed to cancel order $orderId: $e'));
-      // Rất quan trọng: Emit lại state loaded cũ để UI không bị treo ở loading (nếu có)
-      // Hoặc emit lại state đã lọc trước đó nếu currentState là OrderLoaded
-       if (currentState is OrderLoaded) {
-          // Cần đảm bảo _selectedFilter vẫn đúng
-          _emitFilteredOrders();
-       }
-
-      return false; // Trả về false để báo thất bại
+      // Nếu đã emit OrderLoading ở trên, cần emit lại state trước đó hoặc OrderError
+      // if (previousState is OrderLoaded) {
+      //   emit(previousState);
+      // } else {
+      //   emit(OrderError('Failed to cancel order $orderId: $e'));
+      // }
+      // Vì không emit loading ở trên, chỉ cần đảm bảo state lỗi được emit nếu cần
+      // Hoặc để UI tự xử lý dựa trên kết quả false.
+      // Hiện tại, _applyFilterAndEmit có thể sẽ emit OrderLoaded với list cũ.
+      // Cân nhắc emit một state lỗi cụ thể cho hành động này nếu UI cần.
+      // Tạm thời, chúng ta sẽ không thay đổi state hiện tại khi có lỗi hủy, UI sẽ xử lý việc không thành công.
+      emit(OrderError('Failed to cancel order $orderId: $e. Please try again.')); // Emit lỗi để UI biết
+      return false;
     }
   }
-  // ------------------------------------
+
+  /// Clears the current orders list and filter, then emits [OrderInitial].
+  /// Useful when navigating away from an order list page or on user logout.
+  void clearAndResetOrders() {
+    debugPrint('🛒 OrderCubit: Clearing orders and resetting state.');
+    _masterOrderList = [];
+    _currentFilterStatus = null;
+    emit(const OrderInitial()); // Reset về trạng thái ban đầu
+  }
 
   @override
   Future<void> close() {
     debugPrint('💀 OrderCubit CLOSED - HashCode: $hashCode');
+    // Bạn có thể thêm logic dọn dẹp khác ở đây nếu cần
     return super.close();
   }
 }

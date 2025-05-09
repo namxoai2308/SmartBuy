@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
-import 'package:flutter_ecommerce/models/product.dart';
+import 'package:flutter_ecommerce/models/home/product.dart';
 import 'package:flutter_ecommerce/services/home_services.dart';
 import 'package:flutter_ecommerce/services/search_history_service.dart';
 import 'dart:math';

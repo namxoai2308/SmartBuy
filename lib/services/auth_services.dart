@@ -5,7 +5,7 @@ abstract class AuthServices {
   User? get currentUser;
   Stream<User?> get authStateChanges;
   Future<User?> loginWithEmailAndPassword(String email, String password);
-  Future<User?> signUpWithEmailAndPassword(String email, String password, String name);
+  Future<User?> signUpWithEmailAndPassword(String email, String password, String name, String role);
   Future<void> logout();
 }
 
@@ -35,7 +35,7 @@ class AuthServicesImpl implements AuthServices {
   }
 
   @override
-  Future<User?> signUpWithEmailAndPassword(String email, String password, String name) async {
+  Future<User?> signUpWithEmailAndPassword(String email, String password, String name, String role) async {
     try {
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email.trim(),
@@ -49,6 +49,7 @@ class AuthServicesImpl implements AuthServices {
             'uid': user.uid,
             'name': name.trim(),
             'email': email.trim(),
+            'role': role,
             'createdAt': FieldValue.serverTimestamp(),
           });
           return user;
@@ -62,6 +63,16 @@ class AuthServicesImpl implements AuthServices {
       throw Exception(e.message ?? 'Sign up failed. Please try again.');
     } catch (e) {
       throw Exception('An unknown error occurred during sign up.');
+    }
+  }
+
+  Future<String?> getUserRole(String uid) async {
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      return doc.data()?['role'];
+    } catch (e) {
+      print('Error getting user role: $e');
+      return null;
     }
   }
 

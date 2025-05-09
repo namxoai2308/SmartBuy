@@ -1,4 +1,4 @@
-import 'package:flutter_ecommerce/models/product.dart';
+import 'package:flutter_ecommerce/models/home/product.dart';
 import 'package:flutter_ecommerce/views/pages/home/shop_page.dart';
 
 class ProductFilterService {

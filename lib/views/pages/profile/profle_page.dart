@@ -4,12 +4,31 @@ import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
 import 'package:flutter_ecommerce/utilities/routes.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
+import 'package:flutter_ecommerce/controllers/chat/chat_cubit.dart';
 import 'package:flutter_ecommerce/models/user_model.dart';
-import 'package:flutter_ecommerce/services/search_history_service.dart';
-
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
+
+  void _navigateToSupportChat(BuildContext context) {
+    final currentAuthCubitState = context.read<AuthCubit>().state;
+    if (currentAuthCubitState is! AuthSuccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to chat with support.')),
+      );
+      return;
+    }
+
+    if (currentAuthCubitState.user.role.toLowerCase() != 'buyer') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Only buyers can initiate support chat from profile.')),
+      );
+      return;
+    }
+
+    context.read<ChatCubit>().startChatWithAdmin();
+    Navigator.of(context).pushNamed(AppRoutes.chatWaitingPageRoute);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +45,6 @@ class ProfilePage extends StatelessWidget {
 
     return SafeArea(
       child: Scaffold(
-        backgroundColor: Colors.white,
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -44,12 +62,14 @@ class ProfilePage extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 0),
-              child: const Text(
+              child: Text(
                 "My Profile",
                 style: TextStyle(
                   fontSize: 34,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: Theme.of(context).brightness == Brightness.light
+                      ? Colors.black87
+                      : Colors.white,
                 ),
               ),
             ),
@@ -58,10 +78,9 @@ class ProfilePage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Row(
                 children: [
-                  CircleAvatar(
+                  const CircleAvatar(
                     radius: 30,
-                    backgroundImage: const AssetImage('assets/success_shopping.png'),
-                    backgroundColor: Colors.grey[200],
+                    backgroundImage: AssetImage('assets/success_shopping.png'),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -72,7 +91,9 @@ class ProfilePage extends StatelessWidget {
                           userName,
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: Theme.of(context).brightness == Brightness.light
+                                    ? Colors.black87
+                                    : Colors.white,
                               ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -81,7 +102,9 @@ class ProfilePage extends StatelessWidget {
                         Text(
                           email,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey[600],
+                                color: Theme.of(context).brightness == Brightness.light
+                                    ? Colors.grey[600]
+                                    : Colors.white,
                               ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -127,29 +150,24 @@ class ProfilePage extends StatelessWidget {
                   ),
                   _buildProfileTile(
                     context,
-                    title: "Promocodes",
-                    subtitle: "View available promocodes",
-                    onTap: () {},
+                    title: "Langages",
+                    subtitle: "Select Langages",
+                    onTap: () async {
+                      Navigator.of(context).pushNamed(AppRoutes.languagesPageRoute);
+                    },
                   ),
                   _buildProfileTile(
                     context,
-                    title: "My reviews",
-                    subtitle: "See your product reviews",
-                    onTap: () {},
+                    title: "Support",
+                    subtitle: "Chat with our support team",
+                    onTap: () => _navigateToSupportChat(context),
                   ),
                   _buildProfileTile(
                     context,
                     title: "Settings",
                     subtitle: "Notifications, password, etc.",
-                    onTap: () async {
-                      final searchHistoryService = SearchHistoryService();
-                      await searchHistoryService.clearSearchHistory();
-
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Search history cleared.")),
-                        );
-                      }
+                    onTap: () {
+                      Navigator.of(context).pushNamed(AppRoutes.settingsPageRoute);
                     },
                   ),
                   const SizedBox(height: 30),
@@ -158,8 +176,10 @@ class ProfilePage extends StatelessWidget {
                     child: BlocListener<AuthCubit, AuthState>(
                       listener: (context, state) {
                         if (state is AuthInitial) {
-                          Navigator.of(context, rootNavigator: true)
-                              .pushNamedAndRemoveUntil(AppRoutes.loginPageRoute, (route) => false);
+                          Navigator.of(context, rootNavigator: true).pushNamedAndRemoveUntil(
+                            AppRoutes.loginPageRoute,
+                            (route) => false,
+                          );
                         } else if (state is AuthFailed) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Logout failed: ${state.error}')),
@@ -178,10 +198,7 @@ class ProfilePage extends StatelessWidget {
                                 child: SizedBox(
                                   width: 24,
                                   height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 3,
-                                    color: Colors.white,
-                                  ),
+                                  child: CircularProgressIndicator(strokeWidth: 3),
                                 ),
                               ),
                             );
@@ -216,23 +233,29 @@ class ProfilePage extends StatelessWidget {
     return ListTile(
       title: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: Colors.black87,
+          color: Theme.of(context).brightness == Brightness.light
+              ? Colors.black87
+              : Colors.white,
         ),
       ),
       subtitle: Text(
         subtitle,
         style: TextStyle(
           fontSize: 14,
-          color: Colors.grey[600],
+          color: Theme.of(context).brightness == Brightness.light
+              ? Colors.grey[600]
+              : Colors.white,
         ),
       ),
-      trailing: const Icon(
+      trailing: Icon(
         Icons.arrow_forward_ios,
         size: 16,
-        color: Colors.black45,
+        color: Theme.of(context).brightness == Brightness.light
+            ? Colors.black54
+            : Colors.white,
       ),
       onTap: onTap,
       dense: true,

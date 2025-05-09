@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
-import 'package:flutter_ecommerce/models/shipping_address.dart';
+import 'package:flutter_ecommerce/models/checkout/shipping_address.dart';
 import 'package:flutter_ecommerce/utilities/args_models/add_shipping_address_args.dart';
 import 'package:flutter_ecommerce/utilities/routes.dart';
 
@@ -16,8 +16,7 @@ class ShippingAddressStateItem extends StatefulWidget {
   });
 
   @override
-  State<ShippingAddressStateItem> createState() =>
-      _ShippingAddressStateItemState();
+  State<ShippingAddressStateItem> createState() => _ShippingAddressStateItemState();
 }
 
 class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
@@ -31,26 +30,26 @@ class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
 
   @override
   Widget build(BuildContext context) {
-    final checkoutCubit = BlocProvider.of<CheckoutCubit>(context);
+    final checkoutCubit = context.read<CheckoutCubit>();
 
     return InkWell(
       onTap: widget.onTap,
       borderRadius: BorderRadius.circular(12),
       child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// Header with Name + Edit
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     widget.shippingAddress.fullName,
-                    style: Theme.of(context).textTheme.labelMedium!.copyWith(
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: Colors.black,
                         ),
                   ),
                   InkWell(
@@ -62,35 +61,33 @@ class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
                           checkoutCubit: checkoutCubit,
                         ),
                       );
-
                       if (result == true && mounted) {
                         checkoutCubit.getShippingAddresses();
                       }
                     },
                     child: Text(
                       'Edit',
-                      style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color: Colors.redAccent,
                           ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8.0),
-
-              /// Address Info
+              const SizedBox(height: 8),
               Text(
                 widget.shippingAddress.address,
-                style: Theme.of(context).textTheme.labelMedium,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.black),
               ),
               Text(
                 '${widget.shippingAddress.city}, ${widget.shippingAddress.state}, ${widget.shippingAddress.country}',
-                style: Theme.of(context).textTheme.labelMedium,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.black),
               ),
-
-              /// Default Checkbox
               CheckboxListTile(
-                title: const Text("Default shipping address"),
+                title: const Text(
+                  "Default shipping address",
+                  style: TextStyle(color: Colors.black),
+                ),
                 value: checkedValue,
                 onChanged: (newValue) async {
                   if (newValue == null || !newValue) return;
@@ -102,7 +99,6 @@ class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
                   final updated = widget.shippingAddress.copyWith(isDefault: true);
                   await checkoutCubit.saveAddress(updated);
 
-
                   if (mounted) {
                     checkoutCubit.getShippingAddresses();
                   }
@@ -110,7 +106,7 @@ class _ShippingAddressStateItemState extends State<ShippingAddressStateItem> {
                 activeColor: Colors.black,
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
-              )
+              ),
             ],
           ),
         ),

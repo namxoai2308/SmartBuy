@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_ecommerce/models/delivery_method.dart';
-import 'package:flutter_ecommerce/models/payment_method.dart';
-import 'package:flutter_ecommerce/models/shipping_address.dart';
+import 'package:flutter_ecommerce/models/checkout/delivery_method.dart';
+import 'package:flutter_ecommerce/models/checkout/payment_method.dart';
+import 'package:flutter_ecommerce/models/checkout/shipping_address.dart';
 import 'package:flutter_ecommerce/services/auth_services.dart';
 import 'package:flutter_ecommerce/services/checkout_services.dart';
 import 'package:flutter_ecommerce/services/stripe_services.dart';
@@ -72,40 +72,117 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     }
   }
 
-Future<void> makePreferred(PaymentMethod paymentMethod) async {
-  emit(MakingPreferred());
+// Giả sử trong CheckoutCubit bạn có một biến thành viên để lưu totalAmount cuối cùng được cập nhật
+// double _currentKnownTotalAmount = 0.0;
+// Và hàm updateCartTotalAmount sẽ cập nhật biến này:
+// void updateCartTotalAmount(double newAmount) {
+//   _currentKnownTotalAmount = newAmount;
+//   final currentState = state;
+//   if (currentState is CheckoutLoaded) {
+//     emit(currentState.copyWith(totalAmount: newAmount));
+//   }
+// }
+
+Future<bool> makePreferred(PaymentMethod paymentMethodToMakePreferred) async {
+  final CheckoutState stateBeforeAction = state; // Đổi tên biến để rõ ràng hơn
+  print('CheckoutCubit: makePreferred - State BEFORE action: ${stateBeforeAction.runtimeType}');
+
+  emit(MakingPreferred(paymentMethodId: paymentMethodToMakePreferred.id)); // Thêm ID để UI có thể hiển thị loading trên thẻ cụ thể
+
   try {
-    final preferred = await checkoutServices.paymentMethods(true);
-    for (var method in preferred) {
-      await checkoutServices.setPaymentMethod(
-        method.copyWith(isPreferred: false),
-      );
+    // 1. Cập nhật isPreferred=false cho tất cả các thẻ khác của user (nếu có)
+    // Điều này đảm bảo chỉ có một thẻ là preferred
+    final allUserCards = await checkoutServices.paymentMethods(); // Lấy tất cả thẻ của user
+    for (var card in allUserCards) {
+      if (card.isPreferred && card.id != paymentMethodToMakePreferred.id) {
+        await checkoutServices.setPaymentMethod(card.copyWith(isPreferred: false));
+        print('CheckoutCubit: makePreferred - Unset preferred for card: ${card.id}');
+      }
     }
+
+    // 2. Cập nhật isPreferred=true cho thẻ được chọn
     await checkoutServices.setPaymentMethod(
-      paymentMethod.copyWith(isPreferred: true),
+      paymentMethodToMakePreferred.copyWith(isPreferred: true),
     );
+    print('CheckoutCubit: makePreferred - Set preferred for card: ${paymentMethodToMakePreferred.id}');
 
-    final updatedPaymentMethods = await checkoutServices.paymentMethods();
-    final updatedPreferred = updatedPaymentMethods.firstWhere(
-      (method) => method.isPreferred,
-      orElse: () => updatedPaymentMethods.isNotEmpty
-          ? updatedPaymentMethods.first
-          : PaymentMethod.empty(),
-    );
+    final newlySetPreferredMethod = paymentMethodToMakePreferred.copyWith(isPreferred: true);
 
-    final currentState = state;
-    if (currentState is CheckoutLoaded) {
-      emit(currentState.copyWith(
-        selectedPaymentMethod: updatedPreferred,
-      ));
+    // 3. Chuẩn bị dữ liệu và emit CheckoutLoaded state mới
+    ShippingAddress? currentShippingAddress;
+    List<DeliveryMethod> currentDeliveryMethods = [];
+    DeliveryMethod? currentSelectedDeliveryMethod;
+    double finalTotalAmountForState = 0.0;
+
+    if (stateBeforeAction is CheckoutLoaded) {
+      print('CheckoutCubit: makePreferred - Building from previous CheckoutLoaded.');
+      currentShippingAddress = stateBeforeAction.shippingAddress;
+      currentDeliveryMethods = stateBeforeAction.deliveryMethods;
+      currentSelectedDeliveryMethod = stateBeforeAction.selectedDeliveryMethod;
+      finalTotalAmountForState = stateBeforeAction.totalAmount ?? 0.0;
+    } else {
+      // Nếu state trước đó không phải là CheckoutLoaded, fetch lại dữ liệu cần thiết
+      print('CheckoutCubit: makePreferred - Previous state was ${stateBeforeAction.runtimeType}. Fetching additional data for CheckoutLoaded.');
+      final user = authServices.currentUser;
+      if (user != null) {
+        final addresses = await checkoutServices.shippingAddresses(user.uid);
+        // Cố gắng tìm default address, nếu không có thì lấy cái đầu tiên, nếu rỗng thì empty.
+        currentShippingAddress = addresses.isNotEmpty
+            ? addresses.firstWhere((a) => a.isDefault, orElse: () => addresses.first)
+            : ShippingAddress.empty();
+      } else {
+        currentShippingAddress = ShippingAddress.empty();
+        print('CheckoutCubit: makePreferred - User is null, cannot fetch addresses.');
+        // Có thể throw lỗi hoặc trả về false ở đây nếu user là bắt buộc
+      }
+      currentDeliveryMethods = await checkoutServices.deliveryMethods();
+      currentSelectedDeliveryMethod = currentDeliveryMethods.isNotEmpty ? currentDeliveryMethods.first : null;
+
+      // Lấy totalAmount:
+      // Ưu tiên 1: Nếu CheckoutCubit có lưu trữ _currentKnownTotalAmount (được cập nhật bởi CartCubit)
+      // finalTotalAmountForState = _currentKnownTotalAmount;
+      // Ưu tiên 2: Nếu không, giữ giá trị 0.0 hoặc lấy từ nguồn khác nếu có
+      // Hiện tại để 0.0, CheckoutPage nên cập nhật nó sau.
+      print('CheckoutCubit: makePreferred - totalAmount for new CheckoutLoaded will be $finalTotalAmountForState (default or from previous logic).');
     }
 
-    // 👉 Emit PreferredMade để trigger Navigator.pop & cập nhật UI ở màn trước
-    emit(PreferredMade());
-  } catch (e) {
+    // 4. Emit CheckoutLoaded với payment method mới và các thông tin khác
+    emit(CheckoutLoaded(
+      shippingAddress: currentShippingAddress,
+      deliveryMethods: currentDeliveryMethods,
+      selectedDeliveryMethod: currentSelectedDeliveryMethod,
+      selectedPaymentMethod: newlySetPreferredMethod,
+      totalAmount: finalTotalAmountForState,
+    ));
+    print('CheckoutCubit: makePreferred - Emitted CheckoutLoaded with new preferred payment.');
+
+    // KHÔNG EMIT PreferredMade nữa.
+    // KHÔNG CẦN Future.delayed nữa vì hàm này sẽ được await ở UI.
+    return true; // Báo hiệu thành công
+
+  } catch (e, s) { // Bắt cả StackTrace để debug dễ hơn
+    print('CheckoutCubit: makePreferred - Error: $e');
+    print('CheckoutCubit: makePreferred - StackTrace: $s');
     emit(PreferredMakingFailed(e.toString()));
+    return false; // Báo hiệu thất bại
   }
 }
+
+// Và đừng quên sửa State MakingPreferred nếu bạn muốn có paymentMethodId
+// part 'checkout_state.dart';
+// @immutable
+// abstract class CheckoutState extends Equatable {
+//   const CheckoutState();
+//   @override
+//   List<Object?> get props => [];
+// }
+// ...
+// class MakingPreferred extends CheckoutState {
+//   final String? paymentMethodId; // ID của thẻ đang được xử lý
+//   const MakingPreferred({this.paymentMethodId});
+//   @override
+//   List<Object?> get props => [paymentMethodId];
+// }
 
 
 

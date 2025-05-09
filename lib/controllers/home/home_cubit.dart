@@ -3,13 +3,14 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
-import 'package:flutter_ecommerce/models/product.dart';
-import 'package:flutter_ecommerce/models/filter_criteria.dart';
+import 'package:flutter_ecommerce/models/home/product.dart';
+import 'package:flutter_ecommerce/models/home/filter_criteria.dart';
+import 'package:flutter_ecommerce/models/user_model.dart';
 import 'package:flutter_ecommerce/services/home_services.dart';
 import 'package:flutter_ecommerce/services/recommendation_service.dart';
 import 'package:flutter_ecommerce/views/pages/home/shop_page.dart';
 
-part 'home_state.dart';
+part 'home_state.dart'; // Đảm bảo state của bạn được định nghĩa ở đây
 
 class HomeCubit extends Cubit<HomeState> {
   final HomeServicesImpl homeServices = HomeServicesImpl();
@@ -25,22 +26,19 @@ class HomeCubit extends Cubit<HomeState> {
     _listenToAuthChanges();
   }
 
+  // Helper để lấy UserModel hiện tại một cách an toàn
+  // Sửa lại: Truy cập state.user thay vì state.userModel
+  UserModel? get _currentUser {
+    final authState = authCubit.state;
+    return authState is AuthSuccess ? authState.user : null;
+  }
+
   void _listenToAuthChanges() {
     _authSubscription?.cancel();
     _authSubscription = authCubit.stream.listen((authState) {
-      if (authState is AuthSuccess) {
-        getHomeContent(userId: authState.user.uid);
-      } else if (authState is AuthInitial || authState is AuthFailed) {
-        getHomeContent(userId: null);
-      }
+      getHomeContent();
     });
-
-    final initialAuthState = authCubit.state;
-    if (initialAuthState is AuthSuccess) {
-      getHomeContent(userId: initialAuthState.user.uid);
-    } else {
-      getHomeContent(userId: null);
-    }
+    getHomeContent();
   }
 
   @override
@@ -49,17 +47,28 @@ class HomeCubit extends Cubit<HomeState> {
     super.emit(state);
   }
 
-  Future<void> getHomeContent({String? userId}) async {
+  Future<void> getHomeContent() async {
     if (state is! HomeLoading) {
       emit(HomeLoading());
     }
     try {
-      final results = await Future.wait([
+      // Sử dụng getter _currentUser đã sửa
+      final currentUser = _currentUser;
+      final bool isBuyer = currentUser?.role.toLowerCase() == 'buyer';
+      final String? currentUserId = currentUser?.uid;
+
+      final bool shouldFetchRecommendations = isBuyer && currentUserId != null;
+
+      final List<Future> futures = [
         homeServices.getNewProducts(),
         homeServices.getSalesProducts(),
         homeServices.getAllProducts(),
-        recommendationServices.getRecommendations(userId),
-      ]);
+        shouldFetchRecommendations
+            ? recommendationServices.getRecommendations(currentUserId!)
+            : Future.value(<Product>[]),
+      ];
+
+      final results = await Future.wait(futures);
 
       final newProducts = results[0] as List<Product>;
       final salesProducts = results[1] as List<Product>;
@@ -88,6 +97,7 @@ class HomeCubit extends Cubit<HomeState> {
     }
   }
 
+  // --- Các hàm filter, sort giữ nguyên ---
   void applyFilterCriteria(FilterCriteria criteria) {
     _currentFilters = criteria;
     _reEmitSuccessStateWithUpdatedFilters();
@@ -144,7 +154,7 @@ class HomeCubit extends Cubit<HomeState> {
     required String searchQuery,
     required SortOption sortOption,
   }) {
-    List<Product> workingList = List.from(originalList);
+     List<Product> workingList = List.from(originalList);
 
     if (searchQuery.isNotEmpty) {
       workingList = workingList.where((p) =>
@@ -183,25 +193,35 @@ class HomeCubit extends Cubit<HomeState> {
 
     return workingList;
   }
+  // ----------------------------------------
 
-  Future<void> refreshRecommendations({String? userId}) async {
+  Future<void> refreshRecommendations({required String userId}) async {
+    // Sử dụng getter _currentUser đã sửa
+    final currentUser = _currentUser;
+    final bool isBuyer = currentUser?.role.toLowerCase() == 'buyer';
+
+     if (!isBuyer || currentUser?.uid != userId) {
+       print("Skipping refreshRecommendations: User is not a buyer or ID mismatch.");
+       return;
+     }
+
     if (state is HomeSuccess) {
       final currentState = state as HomeSuccess;
       try {
-        final currentUserId = userId ?? (authCubit.state is AuthSuccess ? (authCubit.state as AuthSuccess).user.uid : null);
-        final newRecommendedProducts = await recommendationServices.getRecommendations(currentUserId);
+        final newRecommendedProducts = await recommendationServices.getRecommendations(userId);
         emit(currentState.copyWith(
           recommendedProducts: newRecommendedProducts,
         ));
       } catch (e) {
-        print('Error refreshing recommendations: $e');
+        print('Error refreshing recommendations for user $userId: $e');
       }
+    } else {
+        print("Skipping refreshRecommendations: Home state is not Success.");
     }
   }
 
   Future<void> refreshProducts() async {
-    final currentUserId = (authCubit.state is AuthSuccess ? (authCubit.state as AuthSuccess).user.uid : null);
-    await getHomeContent(userId: currentUserId);
+    await getHomeContent();
   }
 
   @override

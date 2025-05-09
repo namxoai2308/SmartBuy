@@ -8,9 +8,12 @@ class PaymentComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+  print("PaymentComponent: BUILD called.");
     return BlocBuilder<CheckoutCubit, CheckoutState>(
       builder: (context, state) {
+      print("PaymentComponent: BlocBuilder builder called with state: ${state.runtimeType}");
         if (state is CheckoutLoaded) {
+        print("PaymentComponent: State is CheckoutLoaded. Selected Payment Method: ${state.selectedPaymentMethod?.id} - ${state.selectedPaymentMethod?.cardNumber}, isPreferred: ${state.selectedPaymentMethod?.isPreferred}");
         print("Selected Payment Method in UI: ${state.selectedPaymentMethod}");
           if (state.selectedPaymentMethod == null) {
             return Padding(
@@ -46,6 +49,7 @@ class PaymentComponent extends StatelessWidget {
             );
           }
         }
+        print("PaymentComponent: State is NOT CheckoutLoaded or payment method is empty/null. Returning SizedBox.shrink.");
         return const SizedBox.shrink();
       },
     );

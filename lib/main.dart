@@ -1,19 +1,43 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:provider/provider.dart';
+
+// THÊM 2 DÒNG IMPORT NÀY:
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart'; // File này sẽ được Flutter tự động tạo
+
 import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
 import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
+import 'package:flutter_ecommerce/controllers/order/order_cubit.dart';
+import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
+import 'package:flutter_ecommerce/controllers/chat/chat_cubit.dart';
 import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
-import 'package:flutter_ecommerce/utilities/constants.dart';
-import 'package:flutter_ecommerce/utilities/router.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:flutter_ecommerce/views/pages/auth_wrapper.dart';
+import 'package:flutter_ecommerce/controllers/theme_notifier.dart';
+import 'package:flutter_ecommerce/controllers/locale_notifier.dart'; // <--- THÊM IMPORT LOCALE NOTIFIER
+
 import 'package:flutter_ecommerce/services/search_history_service.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_ecommerce/services/order_services.dart';
+
+import 'package:flutter_ecommerce/utilities/constants.dart';
+import 'package:flutter_ecommerce/utilities/router.dart'; // Đảm bảo 'onGenerate' được định nghĩa trong file này
+import 'package:flutter_ecommerce/utilities/app_themes.dart';
+
+import 'package:flutter_ecommerce/views/pages/auth_wrapper.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 
 Future<void> main() async {
   await initSetup();
-  runApp(const MyApp());
+  runApp(
+    // SỬ DỤNG MULTIPROVIDER Ở ĐÂY ĐỂ CUNG CẤP CẢ ThemeNotifier và LocaleNotifier
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeNotifier()),
+        ChangeNotifierProvider(create: (_) => LocaleNotifier()), // <--- CUNG CẤP LOCALE NOTIFIER
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 Future<void> initSetup() async {
@@ -27,6 +51,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // MultiBlocProvider cho các Cubits có thể đặt ở đây, bên trong MultiProvider của ChangeNotifier
     return MultiBlocProvider(
       providers: [
         Provider<SearchHistoryService>(
@@ -37,69 +62,91 @@ class MyApp extends StatelessWidget {
           lazy: false,
         ),
         BlocProvider<CartCubit>(
-          create: (context) => CartCubit()..getCartItems(),
+          create: (context) => CartCubit(),
+        ),
+        BlocProvider<CheckoutCubit>(
+          create: (context) => CheckoutCubit(),
         ),
         BlocProvider<HomeCubit>(
-          create: (context) => HomeCubit(authCubit: context.read<AuthCubit>()),
+          create: (context) => HomeCubit(
+            authCubit: context.read<AuthCubit>(),
+          ),
           lazy: false,
         ),
-      ],
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Ecommerce App',
-        theme: ThemeData(
-          scaffoldBackgroundColor: const Color(0xFFE5E5E5),
-          primaryColor: Colors.red,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.white,
-            elevation: 1,
-            iconTheme: IconThemeData(color: Colors.black),
-            titleTextStyle: TextStyle(
-              color: Colors.black,
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          inputDecorationTheme: InputDecorationTheme(
-            labelStyle: Theme.of(context).textTheme.bodyMedium,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              borderSide: BorderSide(color: Colors.red.shade700),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              borderSide: const BorderSide(color: Colors.red),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8.0),
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
+        BlocProvider<ChatCubit>(
+          create: (context) => ChatCubit(
+            authCubit: context.read<AuthCubit>(),
           ),
         ),
-        home: const AuthWrapper(),
-        onGenerateRoute: onGenerate,
-        builder: (context, child) {
-          return BlocListener<AuthCubit, AuthState>(
-            listener: (context, state) {
-              final cartCubit = context.read<CartCubit>();
-              if (state is AuthSuccess) {
-                print("Main Listener: AuthSuccess -> Getting Cart Items");
-                cartCubit.getCartItems();
-              } else if (state is AuthInitial) {
-                print("Main Listener: AuthInitial -> Clearing Cart State");
-                cartCubit.clearCartState();
-              }
+
+                BlocProvider<OrderCubit>(
+                  create: (context) => OrderCubit(
+                    // Lấy OrderServicesImpl. Bạn có thể tạo mới hoặc lấy từ provider nếu OrderServices cũng được provide
+                    orderServices: OrderServicesImpl(),
+                    // Lấy AuthCubit đã được cung cấp ở trên
+                    authCubit: BlocProvider.of<AuthCubit>(context), // Hoặc context.read<AuthCubit>()
+                  ),
+                  // KHÔNG gọi fetchCurrentUserOrders() hay fetchAllOrdersForAdmin() ở đây.
+                  // Việc fetch sẽ được thực hiện trong initState của từng trang cụ thể.
+                ),
+      ],
+      // SỬ DỤNG CONSUMER2 ĐỂ LẮNG NGHE CẢ HAI NOTIFIER
+      child: Consumer2<ThemeNotifier, LocaleNotifier>(
+        builder: (context, themeNotifier, localeNotifier, _) {
+          print("MyApp rebuilding. Current Locale from Notifier: ${localeNotifier.appLocale}");
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            onGenerateTitle: (BuildContext context) {
+              // Đảm bảo AppLocalizations có sẵn trước khi sử dụng
+              // Hoặc cung cấp giá trị mặc định nếu AppLocalizations.of(context) là null
+              // Điều này hiếm khi xảy ra nếu delegates được thiết lập đúng.
+              return AppLocalizations.of(context)?.appTitle ?? 'Ecommerce App';
             },
-            listenWhen: (previous, current) => previous.runtimeType != current.runtimeType,
-            child: child!,
+            theme: AppThemes.lightTheme,
+            darkTheme: AppThemes.darkTheme,
+            themeMode: themeNotifier.currentThemeMode,
+
+            // --- CẬP NHẬT ĐỂ SỬ DỤNG LOCALE TỪ NOTIFIER ---
+            locale: localeNotifier.appLocale, // <--- SỬ DỤNG LOCALE TỪ LOCALE NOTIFIER
+            // Nếu localeNotifier.appLocale là null, MaterialApp sẽ dùng ngôn ngữ hệ thống
+            // hoặc fallback về supportedLocales[0]
+
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('en', ''),
+              Locale('vi', ''),
+              Locale('fr', ''), // Thêm các ngôn ngữ bạn đã tạo file .arb
+              Locale('es', ''), // và muốn hỗ trợ trong LanguagesPage
+            ],
+            // --- KẾT THÚC CẬP NHẬT ---
+
+            home: const AuthWrapper(),
+            onGenerateRoute: onGenerate,
+            builder: (context, child) {
+              return BlocListener<AuthCubit, AuthState>(
+                listenWhen: (prev, curr) =>
+                    prev.runtimeType != curr.runtimeType,
+                listener: (context, state) {
+                  final cartCubit = context.read<CartCubit>();
+                  final chatCubit = context.read<ChatCubit>();
+                  if (state is AuthSuccess) {
+                    print("Main Listener: AuthSuccess -> Loading Cart & Chat");
+                    cartCubit.getCartItems();
+                    chatCubit.loadUser(state.user.uid, state.user.role);
+                  } else if (state is AuthInitial || state is AuthFailed) {
+                    print("Main Listener: AuthInitial/Failed -> Clearing Cart & Chat State");
+                    cartCubit.clearCartState();
+                    chatCubit.clearChatData();
+                  }
+                },
+                child: child!,
+              );
+            },
           );
         },
       ),

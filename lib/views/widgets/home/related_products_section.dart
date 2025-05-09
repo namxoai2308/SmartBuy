@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ecommerce/models/product.dart';
+import 'package:flutter_ecommerce/models/home/product.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_ecommerce/utilities/routes.dart';
 

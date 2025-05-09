@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/order/order_cubit.dart';
-import 'package:flutter_ecommerce/models/order_model.dart';
+import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
+import 'package:flutter_ecommerce/models/order/order_model.dart';
 import 'package:flutter_ecommerce/views/pages/profile/order_details_page.dart';
 import 'package:intl/intl.dart';
 
@@ -15,15 +16,29 @@ class MyOrdersPage extends StatefulWidget {
 class _MyOrdersPageState extends State<MyOrdersPage> {
   OrderStatus _selectedStatus = OrderStatus.pending;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<OrderCubit>().filterOrders(_selectedStatus);
+@override
+void initState() {
+  super.initState();
+  debugPrint('[MyOrdersPage] initState called'); // LOG 1
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) {
+      debugPrint('[MyOrdersPage] addPostFrameCallback - mounted'); // LOG 2
+      try {
+        final authCubitState = context.read<AuthCubit>().state;
+        debugPrint('[MyOrdersPage] Current AuthState in MyOrdersPage: $authCubitState'); // LOG 3
+
+        final orderCubit = context.read<OrderCubit>();
+        debugPrint('[MyOrdersPage] Attempting to fetchCurrentUserOrders...'); // LOG 4
+        orderCubit.fetchOrders(defaultFilterStatus: _selectedStatus);
+        debugPrint('[MyOrdersPage] fetchCurrentUserOrders called'); // LOG 5
+      } catch (e) {
+        debugPrint('[MyOrdersPage] ERROR in initState: $e'); // LOG LỖI
       }
-    });
-  }
+    } else {
+      debugPrint('[MyOrdersPage] addPostFrameCallback - NOT mounted');
+    }
+  });
+}
 
   @override
   Widget build(BuildContext context) {

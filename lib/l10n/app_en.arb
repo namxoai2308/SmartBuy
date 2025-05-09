@@ -1,0 +1,14 @@
+{
+  "@@locale": "en",
+  "appTitle": "My App",
+  "hello": "Hello",
+  "welcomeMessage": "Welcome to our application!",
+  "addToCartButton": "Add to Cart",
+  "selectLanguageTitle": "Select Language",
+    "suggested": "Suggested for You",
+      "suggestedDesc": "Products you may like!",
+      "sale": "Sale",
+      "saleDesc": "Super Summer Sale!!",
+      "newTitle": "New",
+      "newDesc": "Super New Products!!"
+}

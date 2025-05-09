@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_ecommerce/models/delivery_method.dart';
-import 'package:flutter_ecommerce/models/payment_method.dart';
-import 'package:flutter_ecommerce/models/shipping_address.dart';
+import 'package:flutter_ecommerce/models/checkout/delivery_method.dart';
+import 'package:flutter_ecommerce/models/checkout/payment_method.dart';
+import 'package:flutter_ecommerce/models/checkout/shipping_address.dart';
 import 'package:flutter_ecommerce/services/auth_services.dart';
 import 'package:flutter_ecommerce/services/firestore_services.dart';
 import 'package:flutter_ecommerce/utilities/api_path.dart';

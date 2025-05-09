@@ -1,0 +1,15 @@
+{
+  "@@locale": "vi",
+  "appTitle": "Ứng dụng của tôi",
+  "hello": "Xin chào",
+  "welcomeMessage": "Chào mừng bạn đến với ứng dụng của chúng tôi!",
+  "addToCartButton": "Thêm vào giỏ",
+  "selectLanguageTitle": "Chọn ngôn ngữ",
+  "suggested": "Gợi ý cho bạn",
+    "suggested": "Gợi ý cho bạn",
+     "suggestedDesc": "Sản phẩm bạn có thể thích!",
+     "sale": "Giảm giá",
+     "saleDesc": "Siêu giảm giá mùa hè!!",
+     "newTitle": "Mới",
+     "newDesc": "Sản phẩm mới toanh!!"
+}

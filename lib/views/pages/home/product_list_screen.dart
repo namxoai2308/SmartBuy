@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ecommerce/models/product.dart';
+import 'package:flutter_ecommerce/models/home/product.dart';
 import 'package:flutter_ecommerce/views/widgets/home/list_item_home.dart';
 
 class ProductListScreen extends StatelessWidget {
@@ -14,24 +14,32 @@ class ProductListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.appBarTheme.foregroundColor ?? theme.textTheme.titleLarge?.color;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         centerTitle: true,
-        elevation: 0,
+        elevation: theme.appBarTheme.elevation ?? 0,
         title: Text(
           title,
-          style: const TextStyle(color: Colors.black),
+          style: TextStyle(color: textColor),
         ),
-        iconTheme: const IconThemeData(color: Colors.black),
+        iconTheme: IconThemeData(color: textColor),
       ),
       body: products.isEmpty
-          ? const Center(child: Text('No products available'))
+          ? Center(
+              child: Text(
+                'No products available',
+                style: theme.textTheme.bodyMedium,
+              ),
+            )
           : GridView.builder(
               padding: const EdgeInsets.all(16.0),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2, // 2 cột
+                crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
                 childAspectRatio: 0.62,

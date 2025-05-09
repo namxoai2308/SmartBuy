@@ -1,3 +1,4 @@
+// lib/models/payment_method.dart (hoặc đường dẫn của bạn)
 import 'dart:convert';
 
 class PaymentMethod {
@@ -17,8 +18,15 @@ class PaymentMethod {
     this.isPreferred = false,
   });
 
+  // Getter isEmpty
+  bool get isEmpty {
+    return id.trim().isEmpty &&
+           name.trim().isEmpty &&
+           cardNumber.trim().isEmpty;
+  }
+
   static PaymentMethod empty() {
-    return PaymentMethod(
+    return const PaymentMethod(
       id: '',
       name: '',
       cardNumber: '',
@@ -28,6 +36,7 @@ class PaymentMethod {
     );
   }
 
+  // ... các hàm toMap, fromMap, toJson, fromJson, copyWith giữ nguyên
   Map<String, dynamic> toMap() {
     return {
       'id': id,

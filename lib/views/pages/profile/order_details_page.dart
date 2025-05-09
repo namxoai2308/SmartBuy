@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/order/order_cubit.dart';
-import 'package:flutter_ecommerce/models/order_item_model.dart';
-import 'package:flutter_ecommerce/models/order_model.dart';
+import 'package:flutter_ecommerce/models/order/order_item_model.dart';
+import 'package:flutter_ecommerce/models/order/order_model.dart';
 import 'package:intl/intl.dart';
 
 class OrderDetailsPage extends StatelessWidget {

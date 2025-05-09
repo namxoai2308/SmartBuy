@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ecommerce/models/filter_criteria.dart';
+import 'package:flutter_ecommerce/models/home/filter_criteria.dart';
 
 class FilterModal extends StatefulWidget {
   final void Function(FilterCriteria criteria)? onApply;

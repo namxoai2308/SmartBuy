@@ -18,7 +18,7 @@ class CartListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-    color: Colors.white,
+//     color: Colors.white,
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -48,14 +48,19 @@ class CartListItem extends StatelessWidget {
                       children: [
                         Text(
                           cartItem.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
+
                         const SizedBox(height: 4),
                         Text(
                           'Color: ${cartItem.color}    Size: ${cartItem.size}',
                           style:
-                              const TextStyle(color: Colors.grey, fontSize: 13),
+                               TextStyle(color: Colors.grey, fontSize: 13),
                         ),
                         const SizedBox(height: 10),
                         Row(

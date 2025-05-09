@@ -5,12 +5,14 @@ class UserModel extends Equatable {
   final String uid;
   final String name;
   final String email;
+  final String role;
   final Timestamp? createdAt;
 
   const UserModel({
     required this.uid,
     required this.name,
     required this.email,
+    required this.role,
     this.createdAt,
   });
 
@@ -23,6 +25,7 @@ class UserModel extends Equatable {
       uid: snapshot.id,
       name: data['name'] as String? ?? 'No Name',
       email: data['email'] as String? ?? 'No Email',
+      role: data['role'] as String? ?? 'buyer',
       createdAt: data['createdAt'] as Timestamp?,
     );
   }
@@ -32,10 +35,11 @@ class UserModel extends Equatable {
       'uid': uid,
       'name': name,
       'email': email,
+      'role': role,
       if (createdAt == null) 'createdAt': FieldValue.serverTimestamp(),
     };
   }
 
   @override
-  List<Object?> get props => [uid, name, email, createdAt];
+  List<Object?> get props => [uid, name, email, role, createdAt];
 }

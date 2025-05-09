@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
-import 'package:flutter_ecommerce/controllers/database_controller.dart';
-import 'package:flutter_ecommerce/models/shipping_address.dart';
-import 'package:flutter_ecommerce/utilities/routes.dart';
+import 'package:flutter_ecommerce/models/checkout/shipping_address.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/views/pages/checkout/shipping_addresses_page.dart';
 
@@ -32,6 +30,7 @@ class ShippingAddressComponent extends StatelessWidget {
                   shippingAddress.fullName,
                   style: Theme.of(context).textTheme.labelMedium!.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: Colors.black,
                       ),
                 ),
                 InkWell(
@@ -42,7 +41,8 @@ class ShippingAddressComponent extends StatelessWidget {
                           value: checkoutCubit,
                           child: const ShippingAddressesPage(),
                         ),
-                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        transitionsBuilder:
+                            (context, animation, secondaryAnimation, child) {
                           const begin = Offset(1.0, 0.0);
                           const end = Offset.zero;
                           const curve = Curves.ease;
@@ -68,11 +68,15 @@ class ShippingAddressComponent extends StatelessWidget {
             const SizedBox(height: 8.0),
             Text(
               shippingAddress.address,
-              style: Theme.of(context).textTheme.labelMedium,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Colors.black,
+                  ),
             ),
             Text(
               '${shippingAddress.city}, ${shippingAddress.state}, ${shippingAddress.country}',
-              style: Theme.of(context).textTheme.labelMedium,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Colors.black,
+                  ),
             ),
           ],
         ),

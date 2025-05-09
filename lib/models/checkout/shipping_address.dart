@@ -19,9 +19,24 @@ class ShippingAddress {
     this.isDefault = false,
   });
 
+  // ... (các factory constructor và methods khác giữ nguyên) ...
+
+  // THÊM GETTER NÀY:
+  bool get isEmpty {
+    // Một địa chỉ được coi là "trống" nếu các trường thông tin chính đều rỗng.
+    // ID có thể không rỗng nếu nó được tạo từ `ShippingAddress.empty()` rồi gán ID sau,
+    // nhưng về mặt hiển thị, nội dung mới quan trọng.
+    // Hoặc bạn có thể bao gồm cả id.trim().isEmpty nếu muốn.
+    return fullName.trim().isEmpty &&
+           address.trim().isEmpty &&
+           city.trim().isEmpty &&
+           country.trim().isEmpty && // Thêm các trường quan trọng khác nếu cần
+           state.trim().isEmpty;
+  }
+
   factory ShippingAddress.empty() {
     return ShippingAddress(
-      id: '',
+      id: '', // id cũng rỗng khi tạo bằng empty()
       fullName: '',
       country: '',
       address: '',

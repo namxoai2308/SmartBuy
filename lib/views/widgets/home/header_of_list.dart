@@ -13,6 +13,8 @@ class HeaderOfList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+      final textTheme = Theme.of(context).textTheme;
+      final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -23,7 +25,7 @@ class HeaderOfList extends StatelessWidget {
               title,
               style: Theme.of(context).textTheme.titleLarge!.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.black,
+                    color: colorScheme.onBackground,
                   ),
             ),
             InkWell(
@@ -37,9 +39,7 @@ class HeaderOfList extends StatelessWidget {
         ),
         Text(
           description,
-          style: Theme.of(context).textTheme.labelMedium!.copyWith(
-                color: Colors.grey,
-              ),
+          style: TextStyle(color: colorScheme.surface),
         ),
       ],
     );

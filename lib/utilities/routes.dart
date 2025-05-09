@@ -11,4 +11,8 @@ class AppRoutes {
   static const String orderSuccessRoute = '/order-success';
   static const String myOrdersPageRoute = '/my-orders';
   static const String orderDetailsPageRoute = '/order-details';
+  static const String chatWaitingPageRoute = '/chat-waiting';
+  static const String settingsPageRoute = '/settings';
+  static const String languagesPageRoute = '/languages';
+
 }

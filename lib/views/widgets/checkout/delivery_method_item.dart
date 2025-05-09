@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_ecommerce/models/delivery_method.dart';
+import 'package:flutter_ecommerce/models/checkout/delivery_method.dart';
 
 class DeliveryMethodItem extends StatelessWidget {
   final DeliveryMethod deliveryMethod;

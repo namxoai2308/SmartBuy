@@ -113,7 +113,14 @@ final class CardsFetchingFailed extends CheckoutState {
 }
 
 /// Preferred payment method states
-final class MakingPreferred extends CheckoutState {}
+class MakingPreferred extends CheckoutState {
+  final String? paymentMethodId; // ID của thẻ đang được xử lý
+
+  MakingPreferred({this.paymentMethodId}); // Constructor nhận paymentMethodId (nullable)
+
+  @override
+  List<Object?> get props => [paymentMethodId]; // Thêm vào props để Equatable hoạt động đúng (nếu dùng)
+}
 
 final class PreferredMade extends CheckoutState {}
 

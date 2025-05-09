@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
-import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart'; // ✅ Import thêm nếu chưa có
+import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
 import 'package:flutter_ecommerce/utilities/routes.dart';
 import 'package:flutter_ecommerce/views/widgets/cart_list_item.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
@@ -55,7 +55,7 @@ class CartPage extends StatelessWidget {
                       style: Theme.of(context).textTheme.titleLarge!.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 34,
-                            color: Colors.black,
+//                             color: Colors.black,
                           ),
                     ),
                     const SizedBox(height: 16.0),
@@ -95,11 +95,24 @@ class CartPage extends StatelessWidget {
                     const SizedBox(height: 32.0),
                     MainButton(
                       text: 'CHECK OUT',
-                      onTap: () => Navigator.of(context, rootNavigator: true).pushNamed(
-                        AppRoutes.checkoutPageRoute,
-                      ),
+                      onTap: () {
+                        if (cartProducts.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please add products to your cart.'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
+
+                        Navigator.of(context, rootNavigator: true).pushNamed(
+                          AppRoutes.checkoutPageRoute,
+                        );
+                      },
                       hasCircularBorder: true,
                     ),
+
                     const SizedBox(height: 32.0),
                   ],
                 ),

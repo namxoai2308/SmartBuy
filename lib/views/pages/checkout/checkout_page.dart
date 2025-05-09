@@ -4,12 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
 import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
 import 'package:flutter_ecommerce/controllers/checkout/checkout_cubit.dart';
-import 'package:flutter_ecommerce/models/delivery_method.dart';
-import 'package:flutter_ecommerce/models/order_item_model.dart';
-import 'package:flutter_ecommerce/models/order_model.dart';
-import 'package:flutter_ecommerce/models/shipping_address.dart';
+import 'package:flutter_ecommerce/models/checkout/delivery_method.dart';
+import 'package:flutter_ecommerce/models/order/order_item_model.dart';
+import 'package:flutter_ecommerce/models/order/order_model.dart';
+import 'package:flutter_ecommerce/models/checkout/shipping_address.dart';
+import 'package:flutter_ecommerce/models/checkout/payment_method.dart';
 import 'package:flutter_ecommerce/services/order_services.dart';
-import 'package:flutter_ecommerce/utilities/args_models/add_shipping_address_args.dart';
 import 'package:flutter_ecommerce/utilities/routes.dart';
 import 'package:flutter_ecommerce/views/widgets/checkout/checkout_order_details.dart';
 import 'package:flutter_ecommerce/views/widgets/checkout/delivery_method_item.dart';
@@ -26,112 +26,59 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   final OrderServices _orderServices = OrderServicesImpl();
-  final String _pageInstanceId = DateTime.now().millisecondsSinceEpoch.toString();
 
   @override
   void initState() {
     super.initState();
-     print('--- CheckoutPage ($_pageInstanceId) initState ---');
     final checkoutCubit = BlocProvider.of<CheckoutCubit>(context, listen: false);
-    print('CheckoutPage ($_pageInstanceId) initState: Current state is ${checkoutCubit.state.runtimeType}');
     if (checkoutCubit.state is! CheckoutLoaded) {
-          print('CheckoutPage ($_pageInstanceId) initState: State is NOT CheckoutLoaded. Calling getCheckoutData().');
-          checkoutCubit.getCheckoutData();
-        } else {
-          print('CheckoutPage ($_pageInstanceId) initState: State IS CheckoutLoaded. Skipping getCheckoutData().');
-        }
-  }
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    print('--- CheckoutPage ($_pageInstanceId) didChangeDependencies ---');
-    // Kiểm tra xem có logic nào ở đây vô tình gọi getCheckoutData không
-  }
-
-  @override
-  void dispose() {
-    print('--- CheckoutPage ($_pageInstanceId) dispose ---'); // Xem trang có bị dispose không
-    super.dispose();
-  }
-  @override
-  Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-
-    Widget buildShippingAddressComponent(ShippingAddress? shippingAddress) {
-       final checkoutCubit = context.read<CheckoutCubit>();
-      if (shippingAddress == null) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('No Shipping Addresses!'),
-              const SizedBox(height: 6.0),
-              InkWell(
-                onTap: () async {
-                  Navigator.of(context).pushNamed(
-                    AppRoutes.shippingAddressesRoute,
-                    arguments: context.read<CheckoutCubit>(),
-                  );
-
-
-                },
-                child: Text(
-                  'Add new one',
-                  style: Theme.of(context).textTheme.labelSmall!.copyWith(
-                        color: Colors.redAccent,
-                      ),
-                ),
-              ),
-            ],
-          ),
-        );
-      } else {
-        return ShippingAddressComponent(
-          shippingAddress: shippingAddress,
-          checkoutCubit: checkoutCubit,
-        );
-      }
+      checkoutCubit.getCheckoutData();
     }
+  }
 
-    Widget buildDeliveryMethodsComponent(List<DeliveryMethod> deliveryMethods) {
-      final checkoutCubit = context.read<CheckoutCubit>();
-      if (deliveryMethods.isEmpty) {
-        return const Center(
-          child: Text('No delivery methods available!'),
-        );
-      }
-
-      return SizedBox(
-        height: size.height * 0.13,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: deliveryMethods.length,
-          itemBuilder: (context, index) {
-            final method = deliveryMethods[index];
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-              child: DeliveryMethodItem(
-                deliveryMethod: method,
-                isSelected: checkoutCubit.state is CheckoutLoaded &&
-                    (checkoutCubit.state as CheckoutLoaded)
-                            .selectedDeliveryMethod
-                            ?.id ==
-                        method.id,
-                onTap: () {
-                  checkoutCubit.selectDeliveryMethod(method);
-                },
-              ),
-            );
-          },
-        ),
+  Widget _buildDeliveryMethodsComponent(
+      List<DeliveryMethod> deliveryMethods, Size screenSize, CheckoutCubit checkoutCubit) {
+    if (deliveryMethods.isEmpty) {
+      return const Center(
+        child: Text('No delivery methods available!'),
       );
     }
 
+    return SizedBox(
+      height: screenSize.height * 0.13,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: deliveryMethods.length,
+        itemBuilder: (context, index) {
+          final method = deliveryMethods[index];
+          bool isSelected = false;
+          final currentCheckoutState = checkoutCubit.state;
+          if (currentCheckoutState is CheckoutLoaded) {
+            isSelected = currentCheckoutState.selectedDeliveryMethod?.id == method.id;
+          }
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: DeliveryMethodItem(
+              deliveryMethod: method,
+              isSelected: isSelected,
+              onTap: () {
+                checkoutCubit.selectDeliveryMethod(method);
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // Builds the user interface for the checkout page.
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final checkoutCubit = context.read<CheckoutCubit>();
+
     return BlocListener<CartCubit, CartState>(
       listener: (context, cartListenState) {
-        if (cartListenState is CartLoaded) {
-          // Optional: Update total amount if needed, potentially via a dedicated Cubit method
-        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -154,6 +101,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
             } else if (checkoutState is CheckoutLoaded) {
               final shippingAddress = checkoutState.shippingAddress;
               final deliveryMethods = checkoutState.deliveryMethods;
+              final bool isShippingAddressEmpty = shippingAddress?.isEmpty ?? true;
+
+              final PaymentMethod? selectedPaymentMethod = checkoutState.selectedPaymentMethod;
+              final bool isPaymentMethodEmpty = selectedPaymentMethod == null || selectedPaymentMethod.isEmpty;
 
               return Padding(
                 padding: const EdgeInsets.symmetric(
@@ -162,27 +113,72 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Shipping address',
-                        style: Theme.of(context).textTheme.titleLarge,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Shipping address',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8.0),
-                      buildShippingAddressComponent(shippingAddress),
+                      if (isShippingAddressEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'No Shipping Addresses!',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey.shade600
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () {
+                                  Navigator.of(context).pushNamed(
+                                    AppRoutes.shippingAddressesRoute,
+                                    arguments: checkoutCubit,
+                                  );
+                                },
+                                child: Text(
+                                  'Add new one',
+                                  style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                                        color: Colors.redAccent,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        ShippingAddressComponent(
+                          shippingAddress: shippingAddress!,
+                          checkoutCubit: checkoutCubit,
+                        ),
                       const SizedBox(height: 24.0),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Payment',
+                            'Payment method',
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           InkWell(
                             onTap: () async {
-                              await Navigator.of(context)
+                              final result = await Navigator.of(context)
                                   .pushNamed(AppRoutes.paymentMethodsRoute);
+                              if (result == true) {
+                                final currentCheckoutState = context.read<CheckoutCubit>().state;
+                                if (currentCheckoutState is CheckoutLoaded) {
+                                }
+                              }
                             },
                             child: Text(
-                              'Change',
+                              isPaymentMethodEmpty ? '' : 'Change',
                               style: Theme.of(context)
                                   .textTheme
                                   .labelSmall!
@@ -194,14 +190,44 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         ],
                       ),
                       const SizedBox(height: 8.0),
-                      const PaymentComponent(),
+                      if (isPaymentMethodEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'No Payment Method Added!',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey.shade600
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () {
+                                  Navigator.of(context)
+                                      .pushNamed(AppRoutes.paymentMethodsRoute);
+                                },
+                                child: Text(
+                                  'Add new one',
+                                  style: Theme.of(context).textTheme.labelSmall!.copyWith(
+                                        color: Colors.redAccent,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        const PaymentComponent(),
                       const SizedBox(height: 24.0),
                       Text(
                         'Delivery method',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       const SizedBox(height: 8.0),
-                      buildDeliveryMethodsComponent(deliveryMethods),
+                      _buildDeliveryMethodsComponent(deliveryMethods, screenSize, checkoutCubit),
                       const SizedBox(height: 32.0),
                       const CheckoutOrderDetails(),
                       const SizedBox(height: 64.0),
@@ -209,15 +235,15 @@ class _CheckoutPageState extends State<CheckoutPage> {
                         listenWhen: (previous, current) =>
                             current is PaymentMakingFailed ||
                             current is PaymentMade,
-                        listener: (context, checkoutListenState) {
-                          if (checkoutListenState is PaymentMakingFailed) {
+                        listener: (context, paymentListenState) {
+                          if (paymentListenState is PaymentMakingFailed) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text(checkoutListenState.error),
+                                content: Text(paymentListenState.error),
                                 backgroundColor: Colors.red,
                               ),
                             );
-                          } else if (checkoutListenState is PaymentMade) {
+                          } else if (paymentListenState is PaymentMade) {
                             final currentCartState = context.read<CartCubit>().state;
                             final currentAuth = context.read<AuthCubit>().state;
 
@@ -228,8 +254,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                 final userId = currentAuth.user.uid;
                                 final shippingInfo = checkoutState.shippingAddress;
                                 final deliveryInfo = checkoutState.selectedDeliveryMethod;
+                                final paymentInfo = checkoutState.selectedPaymentMethod;
 
-                                if (shippingInfo != null && deliveryInfo != null) {
+                                if (shippingInfo != null && !shippingInfo.isEmpty &&
+                                    deliveryInfo != null &&
+                                    paymentInfo != null && !paymentInfo.isEmpty) {
                                   final orderItems = currentCartState
                                       .cartProducts
                                       .map((cartItem) => OrderItemModel(
@@ -247,6 +276,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
 
                                   final finalTotalAmount = currentCartState.totalAmount + deliveryInfo.price.toDouble();
                                   final shippingAddressFormatted = "${shippingInfo.fullName}, ${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.country}";
+                                  final paymentMethodFormatted = paymentInfo.cardNumber.isNotEmpty
+                                      ? "Card **** ${paymentInfo.cardNumber.substring(paymentInfo.cardNumber.length - 4)}"
+                                      : "Not specified";
 
                                   final newOrder = OrderModel(
                                     id: '',
@@ -255,7 +287,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     totalAmount: finalTotalAmount,
                                     deliveryFee: deliveryInfo.price.toDouble(),
                                     shippingAddress: shippingAddressFormatted,
-                                    paymentMethodDetails: "Stripe Card",
+                                    paymentMethodDetails: paymentMethodFormatted,
                                     createdAt: Timestamp.now(),
                                     trackingNumber: 'N/A',
                                     deliveryMethodInfo: "${deliveryInfo.name}, ${deliveryInfo.days}",
@@ -274,21 +306,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                       AppRoutes.orderSuccessRoute,
                                       (route) => route.isFirst);
                                   }).catchError((error) {
-                                    print("Failed to create order: $error");
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(content: Text('Failed to save order: $error')),
                                     );
                                   });
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Please select shipping address and delivery method.')),
+                                    const SnackBar(content: Text('Please select address, delivery, and payment method.')),
                                   );
                                 }
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text('Order Placed (Cart was empty).'),
-                                        backgroundColor: Colors.green,
+                                        backgroundColor: Colors.orange,
                                       ),
                                     );
                                 context.read<CartCubit>().clearCart();
@@ -307,9 +338,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             current is PaymentMade ||
                             current is PaymentMakingFailed ||
                             current is MakingPayment,
-                        builder: (context, submitState) {
-                           final checkoutCubit = context.read<CheckoutCubit>();
-                          if (submitState is MakingPayment) {
+                        builder: (context, submitButtonState) {
+                          if (submitButtonState is MakingPayment) {
                             return MainButton(
                               hasCircularBorder: true,
                               child: const Center(child: CircularProgressIndicator.adaptive(backgroundColor: Colors.white)),
@@ -319,18 +349,23 @@ class _CheckoutPageState extends State<CheckoutPage> {
                             text: 'Submit Order',
                             onTap: () async {
                               final cartStateForSubmit = context.read<CartCubit>().state;
-                              final checkoutStateForSubmit = context.read<CheckoutCubit>().state;
 
-                              if (checkoutStateForSubmit is CheckoutLoaded) {
-                                if (checkoutStateForSubmit.shippingAddress == null) {
+                              if (checkoutState is CheckoutLoaded) {
+                                if (isShippingAddressEmpty) {
                                    ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text('Please select a shipping address.')),
                                   );
                                   return;
                                 }
-                                 if (checkoutStateForSubmit.selectedDeliveryMethod == null) {
+                                 if (checkoutState.selectedDeliveryMethod == null) {
                                    ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(content: Text('Please select a delivery method.')),
+                                  );
+                                  return;
+                                }
+                                 if (isPaymentMethodEmpty) {
+                                   ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Please select a payment method.')),
                                   );
                                   return;
                                 }
@@ -341,10 +376,10 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                   return;
                               }
 
-                              if (cartStateForSubmit is CartLoaded && checkoutStateForSubmit is CheckoutLoaded) {
+                              if (cartStateForSubmit is CartLoaded && checkoutState is CheckoutLoaded) {
                                 double totalAmount = cartStateForSubmit.totalAmount;
-                                double delivery = checkoutStateForSubmit.selectedDeliveryMethod!.price.toDouble();
-                                final summary = totalAmount + delivery;
+                                double deliveryFee = checkoutState.selectedDeliveryMethod!.price.toDouble();
+                                final summaryAmount = totalAmount + deliveryFee;
 
                                  if (cartStateForSubmit.cartProducts.isEmpty) {
                                    ScaffoldMessenger.of(context).showSnackBar(
@@ -353,17 +388,16 @@ class _CheckoutPageState extends State<CheckoutPage> {
                                     return;
                                 }
 
-                                if (summary <= 0 ) {
+                                if (summaryAmount <= 0 ) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text('Cannot checkout with zero or negative amount.')),
                                     );
                                     return;
                                 }
-
-                                await checkoutCubit.makePayment(summary);
+                                await checkoutCubit.makePayment(summaryAmount);
                               } else {
                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Cart not loaded.')),
+                                    const SnackBar(content: Text('Cart or Checkout data not properly loaded.')),
                                   );
                               }
                             },

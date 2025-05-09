@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
+import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart'; // Đảm bảo import AuthCubit
 import 'package:flutter_ecommerce/controllers/home/home_cubit.dart';
-import 'package:flutter_ecommerce/models/filter_criteria.dart';
-import 'package:flutter_ecommerce/models/product.dart';
+import 'package:flutter_ecommerce/models/home/filter_criteria.dart';
+import 'package:flutter_ecommerce/models/home/product.dart';
 import 'package:flutter_ecommerce/services/search_history_service.dart';
 import 'package:flutter_ecommerce/views/widgets/home/filter_modal.dart';
 import 'package:flutter_ecommerce/views/widgets/home/list_item_home.dart';
@@ -38,18 +38,28 @@ class _ShopPageState extends State<ShopPage> {
     super.dispose();
   }
 
+  // ***** SỬA HÀM NÀY *****
   void _saveSearchQueryAndCheckRefresh(String query) {
     final trimmedQuery = query.trim();
     if (trimmedQuery.isNotEmpty) {
       _searchHistoryService.addSearchTerm(trimmedQuery);
       _searchActionCount++;
       if (_searchActionCount > 0 && _searchActionCount % _searchRefreshThreshold == 0) {
+        // Lấy trạng thái Auth hiện tại
         final authState = context.read<AuthCubit>().state;
-        String? userId = (authState is AuthSuccess) ? authState.user.uid : null;
-        context.read<HomeCubit>().refreshRecommendations(userId: userId);
+        // Kiểm tra xem có phải là AuthSuccess và là buyer không
+        if (authState is AuthSuccess && authState.user.role.toLowerCase() == 'buyer') {
+          final userId = authState.user.uid; // Lấy userId
+          print("ShopPage: Refreshing recommendations for buyer $userId after search threshold.");
+          // Gọi hàm với userId là tham số bắt buộc
+          context.read<HomeCubit>().refreshRecommendations(userId: userId);
+        } else {
+          print("ShopPage: Skipping recommendation refresh after search - User not a buyer or not logged in.");
+        }
       }
     }
   }
+  // ***********************
 
   void _showSortOptions(BuildContext context) {
     final homeCubit = context.read<HomeCubit>();
@@ -90,6 +100,7 @@ class _ShopPageState extends State<ShopPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Phần còn lại của hàm build giữ nguyên như cũ...
     return BlocBuilder<HomeCubit, HomeState>(
       builder: (context, currentHomeState) {
         FilterCriteria currentFilters = FilterCriteria.initial();
@@ -155,8 +166,9 @@ class _ShopPageState extends State<ShopPage> {
                     isSearching = !isSearching;
                     if (!isSearching && previousSearchState) {
                       _saveSearchQueryAndCheckRefresh(searchController.text);
-                      context.read<HomeCubit>().setSearchQuery('');
-                      searchController.clear();
+                      // Không cần clear search query ở đây nữa vì HomeCubit sẽ làm
+                      // context.read<HomeCubit>().setSearchQuery('');
+                      // searchController.clear();
                     } else if (isSearching) {
                       searchController.text = currentSearchQuery;
                       searchController.selection = TextSelection.fromPosition(
@@ -175,21 +187,33 @@ class _ShopPageState extends State<ShopPage> {
               } else if (currentHomeState is HomeFailed) {
                 return Center(child: Text('Error: ${currentHomeState.error}'));
               } else if (currentHomeState is HomeSuccess) {
-                if (productsToShow.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                      child: Text(
-                        currentSearchQuery.isNotEmpty || currentFilters.isAnyFilterApplied
-                            ? 'No products found matching your criteria. Try adjusting filters or search.'
-                            : 'No products available in the shop right now.',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 16),
-                        textAlign: TextAlign.center,
+                if (productsToShow.isEmpty && !isSearching && currentSearchQuery.isEmpty && !currentFilters.isAnyFilterApplied) {
+                   // Chỉ hiển thị "No products available" khi không có filter/search
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                        child: Text(
+                          'No products available in the shop right now.',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                } else if (productsToShow.isEmpty) {
+                    // Hiển thị thông báo không tìm thấy khi có filter/search
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                        child: Text(
+                          'No products found matching your criteria. Try adjusting filters or search.',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
                 }
 
+                // Hiển thị danh sách sản phẩm nếu có
                 return CustomScrollView(
                   slivers: [
                     SliverToBoxAdapter(
@@ -216,22 +240,22 @@ class _ShopPageState extends State<ShopPage> {
                                       onSelected: (_) {
                                         context.read<HomeCubit>().toggleBrandFilter(brand);
                                       },
-                                      backgroundColor: Colors.black,
+                                      backgroundColor: isSelected ? Colors.black : Colors.grey[200],
                                       selectedColor: Colors.black,
                                       labelStyle: TextStyle(
-                                        color: Colors.white ,
+                                        color: isSelected ? Colors.white : Colors.black,
                                         fontWeight: FontWeight.w500,
                                       ),
                                       checkmarkColor: Colors.white,
-                                      showCheckmark: true,
+                                      showCheckmark: isSelected,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(40.0), // bo tròn hơn
+                                        borderRadius: BorderRadius.circular(40.0),
                                         side: BorderSide(
-                                          color: isSelected ? Colors.white : Colors.white,
+                                          color: isSelected ? Colors.black : Colors.grey,
                                           width: 1,
                                         ),
                                       ),
-                                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0), // padding rộng hơn
+                                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                                     ),
                                   );
                                 }).toList(),
@@ -241,12 +265,12 @@ class _ShopPageState extends State<ShopPage> {
 
                           Center(
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Điều chỉnh padding
                               margin: const EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.grey[400]!),
+                                color: Colors.grey[100], // Nền nhạt hơn
+                                borderRadius: BorderRadius.circular(20), // Bo tròn hơn
+                                border: Border.all(color: Colors.grey[300]!), // Viền nhạt
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
@@ -256,6 +280,7 @@ class _ShopPageState extends State<ShopPage> {
                                       showModalBottomSheet(
                                         context: context,
                                         isScrollControlled: true,
+                                        backgroundColor: Colors.transparent, // Nền trong suốt để thấy bo tròn
                                         shape: const RoundedRectangleBorder(
                                           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                                         ),
@@ -267,24 +292,35 @@ class _ShopPageState extends State<ShopPage> {
                                         ),
                                       );
                                     },
-                                    child: Row(
-                                      children: const [
-                                        Icon(Icons.filter_list, size: 18, color: Colors.black),
-                                        SizedBox(width: 4),
-                                        Text('Filters', style: TextStyle(fontSize: 14, color: Colors.black)),
-                                      ],
+                                    child: Padding( // Thêm padding cho dễ bấm
+                                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                                      child: Row(
+                                        children: const [
+                                          Icon(Icons.filter_list, size: 18, color: Colors.black54),
+                                          SizedBox(width: 6),
+                                          Text('Filters', style: TextStyle(fontSize: 14, color: Colors.black87)),
+                                        ],
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: 90),
+                                  Container( // Đường kẻ dọc
+                                     height: 20,
+                                     width: 1,
+                                     color: Colors.grey[300],
+                                     margin: const EdgeInsets.symmetric(horizontal: 12),
+                                  ),
                                   InkWell(
                                     onTap: () => _showSortOptions(context),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.swap_vert, size: 18, color: Colors.black),
-                                        const SizedBox(width: 4),
-                                        Text(_getSortOptionText(currentSort),
-                                            style: const TextStyle(fontSize: 14, color: Colors.black)),
-                                      ],
+                                     child: Padding( // Thêm padding cho dễ bấm
+                                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.swap_vert, size: 18, color: Colors.black54),
+                                          const SizedBox(width: 6),
+                                          Text(_getSortOptionText(currentSort),
+                                              style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -294,16 +330,16 @@ class _ShopPageState extends State<ShopPage> {
                         ],
                       ),
                     ),
-                    SliverToBoxAdapter(
-                      child: SizedBox(height: 12),
-                    ),
+                    // SliverToBoxAdapter(child: SizedBox(height: 0)), // Giảm hoặc bỏ khoảng trống này nếu muốn
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0), // Điều chỉnh padding
                       sliver: SliverGrid(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final product = productsToShow[index];
-                            return ListItemHome(product: product, isNew: index < 4);
+                            // Kiểm tra isNew dựa trên logic của bạn, ví dụ:
+                            // bool isActuallyNew = currentHomeState.newProducts.any((p) => p.id == product.id);
+                            return ListItemHome(product: product, isNew: false /* Thay đổi logic isNew nếu cần */);
                           },
                           childCount: productsToShow.length,
                         ),
@@ -311,14 +347,15 @@ class _ShopPageState extends State<ShopPage> {
                           crossAxisCount: 2,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: 0.63,
+                          childAspectRatio: 0.63, // Điều chỉnh tỷ lệ nếu cần
                         ),
                       ),
                     ),
                   ],
                 );
               } else {
-                return const SizedBox.shrink();
+                // Trường hợp state không xác định (hiếm khi xảy ra)
+                return const Center(child: Text('An unexpected error occurred.'));
               }
             },
           ),

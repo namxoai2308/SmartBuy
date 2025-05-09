@@ -1,4 +1,4 @@
-import 'package:flutter_ecommerce/models/review.dart';
+import 'package:flutter_ecommerce/models/home/review.dart';
 
 class Product {
   final String id;

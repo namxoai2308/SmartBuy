@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:flutter_ecommerce/controllers/auth/auth_cubit.dart';
+import 'package:flutter_ecommerce/controllers/chat/chat_cubit.dart';
+import 'package:flutter_ecommerce/views/pages/chat/chat_seller_target_waiting_page.dart';
+
 import 'package:flutter_ecommerce/controllers/product_details/product_details_cubit.dart';
 import 'package:flutter_ecommerce/views/widgets/drop_down_menu.dart';
 import 'package:flutter_ecommerce/views/widgets/main_button.dart';
 import 'package:flutter_ecommerce/views/widgets/home/related_products_section.dart';
-import 'package:flutter_ecommerce/models/product.dart';
+import 'package:flutter_ecommerce/models/home/product.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
+import 'package:flutter_ecommerce/controllers/cart/cart_cubit.dart';
 // ProductDetails widget displays the detailed view of a selected product.
 class ProductDetails extends StatefulWidget {
   final String productId;
@@ -36,6 +42,7 @@ class _ProductDetailsState extends State<ProductDetails> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;  // Get screen size for layout adjustments.
     final productDetailsCubit = BlocProvider.of<ProductDetailsCubit>(context);
+    final cartCubit = context.read<CartCubit>();
 
     return BlocBuilder<ProductDetailsCubit, ProductDetailsState>(
       bloc: productDetailsCubit,
@@ -66,6 +73,34 @@ class _ProductDetailsState extends State<ProductDetails> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               actions: [
+              IconButton(
+                    tooltip: 'Chat with Support',
+                    onPressed: () {
+                        final authState = context.read<AuthCubit>().state;
+                        if (authState is! AuthSuccess) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please log in to chat with support.')),
+                          );
+                          return;
+                        }
+                        if (authState.user.role.toLowerCase() != 'buyer') {
+                           ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Only buyers can initiate support chat.')),
+                          );
+                          return;
+                        }
+                        context.read<ChatCubit>().startChatWithAdmin(
+                          productIdContext: product.id,
+                          productNameContext: product.title,
+                          productImageUrlContext: product.imgUrl,
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ChatSellerTargetWaitingPage()),
+                        );
+                    },
+                    icon: const Icon(Icons.support_agent_outlined),
+                  ),
                 IconButton(
                   onPressed: () {},  // Share functionality (currently empty)
                   icon: const Icon(Icons.share),
@@ -341,6 +376,8 @@ class _ProductDetailsState extends State<ProductDetails> {
 
                           // Add product to the cart and show confirmation
                           await productDetailsCubit.addToCart(product);
+
+                          cartCubit.getCartItems();
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(content: Text('Product added to cart!')),
                           );

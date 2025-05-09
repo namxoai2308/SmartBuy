@@ -1,11 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_ecommerce/models/add_to_cart_model.dart';
-import 'package:flutter_ecommerce/models/product.dart';
-import 'package:flutter_ecommerce/models/review.dart';
+import 'package:flutter_ecommerce/models/home/product.dart';
+import 'package:flutter_ecommerce/models/home/review.dart';
 import 'package:flutter_ecommerce/services/auth_services.dart';
 import 'package:flutter_ecommerce/services/cart_services.dart';
 import 'package:flutter_ecommerce/services/product_details_services.dart';
-import 'package:flutter_ecommerce/services/home_services.dart'; // Thêm service này
+import 'package:flutter_ecommerce/services/home_services.dart';
 import 'package:meta/meta.dart';
 
 part 'product_details_state.dart';
